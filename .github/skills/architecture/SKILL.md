@@ -67,6 +67,7 @@ graph TD
     UseCase --> Domain[Domain Layer]
     Infra[Infrastructure / SQLAlchemy] --> UseCase
     Infra --> Domain
+```
 
 4. Clean Architecture & Flask レイヤー設計原則
 レイヤー構造と依存方向のルール
@@ -117,6 +118,7 @@ pytest --cov=src/domain --cov-branch --cov-fail-under=95 tests/unit/domain
 
 # 全体のブランチカバレッジ80%未満で自動Fail
 pytest --cov=src --cov-branch --cov-fail-under=80 tests/
+```
 
  * C1 (Branch Coverage) の優先: 単なる行網羅（Line Coverage）ではなく、分岐網羅（Branch Coverage）を検証対象とし、純度判定（大成功 / 成功 / 失敗）などの条件分岐が漏れなくテストされていることを保証する。
  * リファクタリング時の耐性: 内部のプライベート関数追加によってカバレッジが低下しないよう、公開インターフェース（観測可能な振る舞い）経由のテストでカバレッジを維持する。
