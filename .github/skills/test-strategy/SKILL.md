@@ -1,6 +1,6 @@
 ---
 name: "Testing Strategy Guide"
-description: "Test level taxonomy (Solo/Social Unit, In-Process/Out-of-Process Component Integration, E2E, Acceptance) and behavioral validation guidelines."
+description: "Test level taxonomy (Solo/Social Unit, In-Process/Out-of-Process Component, E2E, Acceptance) and behavioral validation guidelines."
 ---
 
 # テスト戦略 (Testing Strategy)
@@ -15,17 +15,18 @@ description: "Test level taxonomy (Solo/Social Unit, In-Process/Out-of-Process C
 
 ## 2. テストレベルの定義と責務 (Test Levels Taxonomy)
 
-当プロジェクトでは、テストの結合度・プロセス境界・検証目的に応じて以下の **7 つのテストレベル** を明確に分離して運用する。
+当プロジェクトでは、テストの結合度・プロセス境界・検証目的に応じて以下の **8 つのテストレベル** を明確に分離して運用する。
 
 | テストレベル | 対象範囲・定義 | モック/インフラ | 主な検証目的 |
 | :--- | :--- | :--- | :--- |
 | **ソロ単体テスト**<br>*(Solo Unit Test)* | 単一のクラス・関数・Value Object[span_1](start_span)[span_1](end_span)。他オブジェクトから独立した純粋な計算ロジック。 | 他依存はすべてモック化または排除 | 複雑な計算・純度計算式・計算アルゴリズムの正当性[span_2](start_span)[span_2](end_span)。 |
 | **ソーシャル単体テスト**<br>*(Social Unit Test)* | 複数のドメインオブジェクト（エンティティ、ドメインサービス）の連携。 | ドメイン内部は本物。外部I/Oのみ遮断 | ドメインモデル間の状態遷移や複合的なビジネスルールの検証[span_3](start_span)[span_3](end_span)。 |
-| **インプロセスコンポーネントテスト**<br>*(In-process Component Test)* | アプリケーションの単一プロセス内（インメモリDB、インメモリメッセージキュー、スタブされた外部境界など）で完結する複数コンポーネントの統合検証。 | **プロセス境界の外側（本物のDBやAPI等）はインメモリ代替またはモック化** | ユースケース層・ビジネスロジック・コンポーネント間の連携制御を**高速かつ決定論的**に検証する。 |
-| **アウトプロセスコンポーネントテスト**<br>*(Out-of-process Component Test)* | 実際の外部プロセス（本物のRDB/NoSQL、キャッシュ、外部Web API、メッセージブローカー等）と通信を接続して行うコンポーネント統合検証。 | **実際の検証用コンテナ（Docker/Testcontainers/実際のDB等）**を使用 | 実際の通信プロトコル、SQLクエリの正当性、スキーマ適合性、トランザクション境界、ネットワーク例外処理の検証。 |
+| **インプロセスコンポーネントテスト**<br>*(In-process Component Test)* | 単一プロセス内（インメモリDB、スタブされた外部境界等）で完結する複数コンポーネントの統合検証。 | **プロセス境界の外側はインメモリ代替またはモック化** | ユースケース層・ビジネスロジックの連携制御を**高速かつ決定論的**に検証する。 |
+| **アウトプロセスコンポーネントテスト**<br>*(Out-of-process Component Test)* | 実際の外部プロセス（本物のDB、キャッシュ、外部API、ブローカー等）と接続して行う統合検証。 | **実際の検証用コンテナ（Docker/Testcontainers等）**を使用 | 実際の通信プロトコル、SQLクエリの正当性、スキーマ適合性、トランザクション境界の検証。 |
 | **永続化統合テスト**<br>*(Persistence Integration Test)* | リポジトリ層・ORマッパー・データベース境界に特化した低レイヤー検証。 | 実際の検証用DB (Test DB / SQLite / PostgreSQL等) | リポジトリ実装のデータマッピング・クエリ実行・制約違反の正確な検証。 |
 | **ゲートウェイ統合テスト**<br>*(Gateway Integration Test)* | 外部 Web API クライアント、外部サービスとの通信境界 (HTTP/gRPC/SDK)。 | WireMock / MSW またはテスト用エンドポイント | ネットワークエラー、シリアライズ/デシリアライズ、API契約（Contract）の検証。 |
-| **E2E テスト / 受け入れテスト**<br>*(E2E / Acceptance Test)* | UI (フロントエンド) からバックエンド、外部連携までを含めたシステム全体の貫通検証およびシナリオ検証[span_4](start_span)[span_4](end_span)。 | 実際のシステム全体環境または総合検証環境 | **顧客・ドメインエキスパートが求める要求（REQ ID）を満たしているかの検証**[span_5](start_span)[span_5](end_span)。 |
+| **E2E テスト**<br>*(End-to-End Test)* | UI (フロントエンド) からバックエンド、外部連携までを含めたシステム全体の貫通・導線検証。 | 実際のシステム全体環境または総合検証環境 | システム全体を通じたデータフロー、UI操作、非同期処理の導線検証[span_4](start_span)[span_4](end_span)。 |
+| **受け入れテスト**<br>*(Acceptance Test)* | ドメインエキスパート・顧客視点でのビジネスシナリオ・要件適合性の検証 (Given-When-Then / BDD)。 | ブラックボックス化されたシステム全体またはユースケース層 | **顧客・ドメインエキスパートが求める要求（REQ ID）を満たしているかの検証**[span_5](start_span)[span_5](end_span)。 |
 
 ---
 
@@ -38,7 +39,7 @@ description: "Test level taxonomy (Solo/Social Unit, In-Process/Out-of-Process C
 * **適用範囲**: 
   - メモリ内SQLiteやインメモリリポジトリを使用したユースケースフローの検証。
   - プロセス境界手前までのコンポーネント（コントローラー/ハンドラーからドメイン・サービス層まで）の連携検証。
-* **偽陽性の排除**: 本物のプロセス（本物のDBなど）を立ち上げないためセットアップコストが低く、テストの不完全なクリーンアップによる環境起因の失敗（Flaky Test）を防ぐ。
+* **偽陽性の排除**: 本物のプロセス（本物のDBなど）を立ち上げないためセットアップコストが低く、環境起因の不安定さ（Flaky Test）を防ぐ。
 
 ### 3.2. アウトプロセスコンポーネントテスト (Out-of-process Component Test)
 * **実行特性**: **中〜低速**。Dockerコンテナの初期化やIO待機を伴う。
@@ -55,12 +56,12 @@ description: "Test level taxonomy (Solo/Social Unit, In-Process/Out-of-Process C
 ### 4.1. ドメイン言語による命名
 - `[Method]_[Scenario]_[Expected]` のような構造露呈型の機械的な命名は禁止。
 - テスト名は、ドメインエキスパートや開発者が理解できる**自然言語（日本語推奨）のストーリー文**で記述する。
-- 受け入れテスト・E2E テスト・インプロセス/アウトプロセスコンポーネントテストには要求 ID を含める（例: `test("[REQ-CHEM-01] 適正温度で加熱した場合、純度99.9%のアスピリンが生成される")`）[span_6](start_span)[span_6](end_span)。
+- 受け入れテスト・E2E テスト・コンポーネントテストには要求 ID を含める（例: `test("[REQ-CHEM-01] 適正温度で加熱した場合、純度99.9%のアスピリンが生成される")`）[span_6](start_span)[span_6](end_span)。
 
 ### 4.2. モック (Mock) の使用基準
 - **ソロ単体テスト**: 依存関係の遮断目的に限定して使用。
 - **ソーシャル単体テスト / インプロセスコンポーネントテスト**: アプリケーション内部のオブジェクト同士はモック化せず本物を使用し、プロセス境界の外部依存のみをスタブ/インメモリ化する。
-- **アウトプロセスコンポーネントテスト**: プロセス境界の外部依存もできる限り本物（Testcontainers等）を接続し、サードパーティ外部サービス（例: 決済API、メール送信API等）のみをモック化する。
+- **アウトプロセスコンポーネントテスト / E2E テスト**: プロセス境界の外部依存もできる限り本物（Testcontainers等）を接続し、サードパーティ外部サービス（例: 決済API等）のみをモック化する。
 
 ---
 
@@ -69,5 +70,5 @@ description: "Test level taxonomy (Solo/Social Unit, In-Process/Out-of-Process C
 PR 作成時に自動実行されるチェック項目：
 1. **静的解析・型チェック**: (`mypy`, `tsc`, `eslint` 等)
 2. **Fast Tests (高速)**: ソロ/ソーシャル単体テスト、インプロセスコンポーネントテスト（数秒で完了）
-3. **Slow Tests (統合)**: アウトプロセスコンポーネントテスト、永続化/ゲートウェイ統合テスト、E2E/受け入れテスト
-4. **要求カバレッジチェック**: 要求 ID (`REQ-xxx`) が受け入れテストまたはコンポーネントテストに紐付いているかを自動解析し、未カバー要求があればレポートに出力する[span_7](start_span)[span_7](end_span)。
+3. **Slow Tests (統合)**: アウトプロセスコンポーネントテスト、永続化/ゲートウェイ統合テスト、E2E テスト、受け入れテスト
+4. **要求カバレッジチェック**: 要求 ID (`REQ-xxx`) が受け入れテストまたは E2E テストに紐付いているかを自動解析し、未カバー要求があればレポートに出力する[span_7](start_span)[span_7](end_span)。
