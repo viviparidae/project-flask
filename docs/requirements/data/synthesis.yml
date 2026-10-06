@@ -1,0 +1,69 @@
+story_id: STORY-ATOM-01
+title: "原子生成・分子結合"
+use_case: UC-02
+context: "『異世界薬局』×『ブレイキング・バッド』×『VA-11 Hall-A』"
+
+functional_requirements:
+  - id: REQ-ATOM-01
+    title: "マナ消費による原子（C, H, O, N）生成"
+    priority: Must
+    description: "プレイヤーは必要マナを消費して原子プールに指定原子を生成する。マナ不足時は生成を拒否する。"
+    given: "プレイヤーの所持マナが原子生成コスト（5マナ/個）以上存在する"
+    when: "指定原子（C, H, O, N）の生成操作を実行する"
+    then: "マナが5消費され、原子プールに対象原子が1個追加される"
+    rules:
+      - "RULE-01: マナ消費による原子生成"
+    acceptance_tests:
+      - "test_generate_atom_with_sufficient_mana"
+      - "test_generate_atom_fails_with_insufficient_mana"
+
+  - id: REQ-ATOM-02
+    title: "原子価制約に基づく結合整合性検証"
+    priority: Must
+    description: "各原子の最大原子価（H=1, O=2, N=3, C=4）を超過する結合形成を拒否する。"
+    given: "作業台上に未結合手を持つ原子が存在する"
+    when: "原子間に新たな化学結合（単結合、二重結合等）を形成する"
+    then: "接続先原子の原子価上限を超えない場合のみ結合が成立し、超過時はエラーで拒否される"
+    rules:
+      - "RULE-02: 原子価制約の検証"
+    acceptance_tests:
+      - "test_form_valid_bond_within_valence_limit"
+      - "test_form_bond_exceeding_valence_rejected"
+
+  - id: REQ-ATOM-03
+    title: "安定分子（完全閉塞構造）の同定と生成"
+    priority: Must
+    description: "未結合手が0になった分子構造を既知化合物テーブルと照合し、正式な試薬として登録する。"
+    given: "作業台上の分子構造において、全原子の未結合手が0（完全閉塞）である"
+    when: "分子確定操作を実行する"
+    then: "既知化合物（サリチル酸、無水酢酸、水等）と照合・同定され、試薬インベントリに登録される"
+    rules:
+      - "RULE-03: 完全閉塞による安定分子同定"
+    acceptance_tests:
+      - "test_assemble_water_molecule_successfully"
+      - "test_assemble_salicylic_acid_successfully"
+
+  - id: REQ-ATOM-04
+    title: "確定前の安全な結合解除と原子返却"
+    priority: Should
+    description: "作業台上で確定する前であれば、原子結合を解消してプールへ無損失で返還できる。"
+    given: "作業台上に未確定の分子構造が存在する"
+    when: "結合解除または原子返還操作を実行する"
+    then: "結合が解除され、関与した原子がマナ損失なしで原子プールに返還される"
+    rules:
+      - "RULE-04: 確定前の安全な結合解除と原子返却"
+    acceptance_tests:
+      - "test_dissolve_bond_and_return_atoms_to_pool"
+
+non_functional_requirements:
+  - id: NFR-GRAPH-01
+    title: "分子グラフ照合の計算効率"
+    priority: Must
+    type: Performance
+    scenario:
+      source: "プレイヤー (UI / APIクライアント)"
+      stimulus: "原子数最大50個の分子確定リクエストを送信する"
+      environment: "通常稼働環境"
+      target: "MolecularMatcher"
+      response: "既知化合物辞書とトポロジー照合を行い、同定結果を返却する"
+      response_measure: "照合判定処理を50ms以内に完了すること"

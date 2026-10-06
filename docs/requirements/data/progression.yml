@@ -1,0 +1,70 @@
+story_id: STORY-LAB-01
+title: "設備拡張・ラボ成長"
+use_case: UC-05
+context: "『異世界薬局』×『ブレイキング・バッド』×『VA-11 Hall-A』"
+
+functional_requirements:
+  - id: REQ-LAB-01
+    title: "資金決済による設備購入と配備"
+    priority: Must
+    description: "プレイヤーは所持金を消費して設備を購入・配備できる。資金不足時は購入を拒否する。"
+    given: "プレイヤーの所持金が設備の販売価格以上存在する"
+    when: "指定設備の購入操作を実行する"
+    then: "販売価格分の所持金が差し引かれ、対象設備がラボの所持設備一覧に追加される"
+    rules:
+      - "RULE-01: 資金決済による設備購入"
+    acceptance_tests:
+      - "test_purchase_equipment_with_sufficient_funds"
+      - "test_purchase_equipment_fails_with_insufficient_funds"
+
+  - id: REQ-LAB-02
+    title: "設備グレードに応じた温度ブレ幅の抑制"
+    priority: Must
+    description: "器具のTierに応じて加熱時の温度ブレ幅が抑制される（Tier 1: ±10℃, Tier 2: ±4℃, Tier 3: ±1℃）。"
+    given: "作業台に特定Tierの熱源設備が配備されている"
+    when: "加熱精製処理が実行される"
+    then: "配備設備のTierに応じた温度ブレ幅が実効温度計算に決定論的に適用される"
+    rules:
+      - "RULE-02: 設備グレードに応じた温度ブレ幅の抑制"
+    acceptance_tests:
+      - "test_tier1_equipment_temperature_fluctuation"
+      - "test_tier2_equipment_temperature_fluctuation"
+      - "test_tier3_equipment_high_precision"
+
+  - id: REQ-LAB-03
+    title: "設備グレードによる到達可能純度上限の制限"
+    priority: Must
+    description: "器具のTierにより到達可能な純度上限値（Tier 1: 85.0%, Tier 2: 95.0%, Tier 3: 99.9%）が制限される。"
+    given: "作業台に配備された設備の純度上限値が定義されている"
+    when: "精製処理により潜在純度が算出される"
+    then: "最終純度は配備設備の純度上限値を超えないようクリップされる"
+    rules:
+      - "RULE-03: 設備グレードによる到達可能純度上限の制限"
+    acceptance_tests:
+      - "test_purity_clipped_by_tier1_equipment_cap"
+      - "test_tier3_equipment_unleashes_maximum_purity"
+
+  - id: REQ-LAB-04
+    title: "作業台スロットの自由な設備換装"
+    priority: Should
+    description: "所持している設備を作業台のスロットへ自由に付け替えることができる。"
+    given: "プレイヤーが複数の設備を所持している"
+    when: "作業台スロットへの換装操作を実行する"
+    then: "指定設備がアクティブ設備として登録され、次回以降の反応に適用される"
+    rules:
+      - "RULE-04: 作業台スロットの自由な設備換装"
+    acceptance_tests:
+      - "test_swap_active_equipment_on_workbench"
+
+non_functional_requirements:
+  - id: NFR-CONFIG-01
+    title: "設備パラメータの設定駆動性と拡張性"
+    priority: Must
+    type: Maintainability
+    scenario:
+      source: "開発者 / システム設定"
+      stimulus: "新規設備定義（名称、Tier、価格、ブレ幅、純度上限）を設定ファイルに追加する"
+      environment: "起動・ロード時"
+      target: "EquipmentCatalog"
+      response: "ドメインロジックの修正なしに全設備パラメータをロードする"
+      response_measure: "コード変更ゼロで新規設備の振る舞いが100%反映されること"

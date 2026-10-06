@@ -1,0 +1,67 @@
+story_id: STORY-TALK-01
+title: "来訪者対話・症状診断"
+use_case: UC-01
+context: "『異世界薬局』×『ブレイキング・バッド』×『VA-11 Hall-A』"
+
+functional_requirements:
+  - id: REQ-TALK-01
+    title: "問診選択肢による症状タグ特定と推奨ターゲット導出"
+    priority: Must
+    description: "適切な問診選択肢を実行することで患者の症状タグをアンロックし、適合する調合推奨ターゲットを提示する。"
+    given: "来訪者との対話セッションがアクティブである"
+    when: "症状に関する問診選択肢を実行する"
+    then: "症状タグ（例: 重症熱病、炎症等）がアンロックされ、適合する推奨調合ターゲット（例: アスピリン）が提示される"
+    rules:
+      - "RULE-01: 問診による症状タグ特定と推奨ターゲット導出"
+    acceptance_tests:
+      - "test_consultation_unlocks_symptom_tags_and_recommendation"
+
+  - id: REQ-TALK-02
+    title: "対話選択肢による開示度の増減判定"
+    priority: Must
+    description: "プレイヤーの選択肢に応じて来訪者の開示度（0〜100%）が増減する。"
+    given: "来訪者の現在開示度が定義されている"
+    when: "対話選択肢を実行する"
+    then: "選択肢の性質（共感・質問 vs 不遜・金銭優先）に応じて開示度が増減する"
+    rules:
+      - "RULE-02: 対話選択肢による開示度変動"
+    acceptance_tests:
+      - "test_empathetic_dialogue_increases_revelation"
+      - "test_rude_dialogue_decreases_revelation"
+
+  - id: REQ-TALK-03
+    title: "高開示度による隠蔽依頼・裏ターゲットの看破"
+    priority: Should
+    description: "開示度が80%以上に達した場合、来訪者の真の目的（暗殺・危険薬要求等）が看破され裏ターゲットが解放される。"
+    given: "来訪者が隠蔽された裏の目的を持っている"
+    when: "来訪者の開示度が80%以上に到達する"
+    then: "隠蔽フラグが解除され、裏の調合ターゲット（例: 致死毒等）が解放される"
+    rules:
+      - "RULE-03: 高開示度による隠蔽依頼・裏ターゲットの看破"
+    acceptance_tests:
+      - "test_high_revelation_unlocks_hidden_sinister_target"
+
+  - id: REQ-TALK-04
+    title: "調合ターゲット確定と作業台フェーズ遷移"
+    priority: Must
+    description: "目標ターゲットを確定することで依頼がアクティブ化し、作業台（調合・精製）フェーズへ状態遷移する。"
+    given: "推奨または解放済みの調合ターゲットが存在する"
+    when: "プレイヤーが調合ターゲットを確定する"
+    then: "依頼がアクティブ状態として記録され、セッションが作業台フェーズへ遷移する"
+    rules:
+      - "RULE-04: 目標ターゲット確定と作業台フェーズ遷移"
+    acceptance_tests:
+      - "test_confirm_target_transitions_to_workbench_phase"
+
+non_functional_requirements:
+  - id: NFR-NARR-01
+    title: "シナリオ対話ツリーの決定論的ステート管理"
+    priority: Must
+    type: Reliability
+    scenario:
+      source: "プレイヤー (UI / APIクライアント)"
+      刺激: "対話選択肢IDを送信する"
+      環境: "通常稼働環境"
+      対象: "DialogueEngine"
+      応答: "次の発話ノード、開示度、アンロックフラグを決定論的に返却する"
+      応答尺度: "同一の選択シーケンスに対し、常に100%同一の対話状態遷移（決定論性）を保証すること"

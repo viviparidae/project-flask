@@ -1,0 +1,67 @@
+story_id: STORY-FATE-01
+title: "調合薬の提供と純度に応じた因果判定"
+use_case: UC-04
+context: "『異世界薬局』×『ブレイキング・バッド』×『VA-11 Hall-A』"
+
+functional_requirements:
+  - id: REQ-FATE-01
+    title: "超高純度薬品による劇的治療判定"
+    priority: Must
+    description: "純度99.0%以上の適合薬品を提供した場合、患者の症状は即座に完全寛解し、信頼度が大幅上昇し特別報酬が付与される。"
+    given: "患者が特定の疾患（例: 重症熱病）を患っている"
+    when: "純度99.0%以上の適合薬品（アスピリン等）を提供する"
+    then: "患者の容態が即座に完全寛解（HP全快・症状解消）となり、NPC信頼度が+30以上増加し、基本報酬に加えてボーナス報酬が付与される"
+    rules:
+      - "RULE-01: 超高純度（99.0%以上）による劇的治癒（神薬）"
+    acceptance_tests:
+      - "test_dispensation_miracle_cure_at_ultra_high_purity"
+
+  - id: REQ-FATE-02
+    title: "標準純度薬品による通常治癒判定"
+    priority: Must
+    description: "純度70.0%〜98.9%の適合薬品を提供した場合、患者の症状は快方に向かい、信頼度が標準上昇し定額報酬が付与される。"
+    given: "患者が特定の疾患を患っている"
+    when: "純度70.0%〜98.9%の適合薬品を提供する"
+    then: "患者の容態が快方（HP回復・症状軽快）となり、NPC信頼度が+10増加し、定額報酬が付与される"
+    rules:
+      - "RULE-02: 標準純度（70.0〜98.9%）による通常治癒（標準薬）"
+    acceptance_tests:
+      - "test_dispensation_standard_relief_at_normal_purity"
+
+  - id: REQ-FATE-03
+    title: "低純度または要求不適合による治療不全判定"
+    priority: Must
+    description: "純度50.0%〜69.9%の薬品を提供した場合、症状は治癒せず信頼度は微増にとどまり、報酬が減額される。"
+    given: "患者が特定の疾患を患っている"
+    when: "純度50.0%〜69.9%の薬品を提供する"
+    then: "患者の症状は治癒せず残存し、信頼度変動は+2以下にとどまり、報酬は50%に減額される"
+    rules:
+      - "RULE-03: 低純度（50.0〜69.9%）による治療不全"
+    acceptance_tests:
+      - "test_dispensation_ineffective_dose_at_low_purity"
+
+  - id: REQ-FATE-04
+    title: "有害不純物混入または極低純度による薬害・因果分岐判定"
+    priority: Must
+    description: "有害不純物フラグがTrueまたは純度50.0%未満の粗悪品を提供した場合、患者に薬害が発生し信頼度が暴落し街の警戒度が上昇する。"
+    given: "患者が特定の疾患を患っている"
+    when: "有害不純物フラグがTrue、または純度50.0%未満の薬品を提供する"
+    then: "患者に薬害ショック・容態悪化が発生し、NPC信頼度が-50以上急落し、報酬は0Gとなり、街の警戒度（WANTEDレベル）が+20上昇する"
+    rules:
+      - "RULE-04: 有害不純物混入・極低純度による薬害（破滅）"
+    acceptance_tests:
+      - "test_dispensation_fatal_malpractice_with_toxic_impurities"
+      - "test_dispensation_patient_death_permanent_consequence"
+
+non_functional_requirements:
+  - id: NFR-INTEG-01
+    title: "因果判定トランザクションの完全整合性"
+    priority: Must
+    type: Reliability
+    scenario:
+      source: "プレイヤー (UI / APIクライアント)"
+      stimulus: "薬品提供APIを呼び出す"
+      environment: "通常稼働環境"
+      target: "DispensationService"
+      response: "患者状態、信頼度、所持金、警戒度、インベントリ消費をアトミックに更新する"
+      response_measure: "途中失敗時は全変更をロールバックし、不整合状態の発生率を0.0%とすること"
