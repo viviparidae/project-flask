@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;600;700&display=swap');
+
+:root { font-family: 'DM Sans', 'Noto Sans JP', sans-serif; color: #eef2ff; background: #070b16; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at 80% 0%, #172c55 0, transparent 30%), #070b16; }
+button, input, select { font: inherit; }
+button { color: inherit; }
+.app-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 28px 0; }
+.topbar { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #27324c; padding-bottom: 22px; }
+.brand { display: flex; gap: 14px; align-items: center; }
+.brand-mark { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; color: #79f5d0; background: #15232f; border: 1px solid #214c47; }
+.brand h1 { margin: 1px 0 0; font-size: 20px; letter-spacing: .04em; }
+.eyebrow { margin: 0; color: #78aaff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .13em; }
+.status { color: #a7b1c8; font-size: 13px; }
+.status span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #65e6ad; margin-right: 8px; box-shadow: 0 0 10px #65e6ad; }
+.hero { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 30px; padding: 65px 0 45px; }
+.hero h2 { margin: 10px 0 12px; max-width: 750px; font-size: clamp(36px, 5vw, 64px); line-height: 1.05; letter-spacing: -.04em; }
+.hero p:not(.eyebrow) { color: #9ba8c1; max-width: 680px; line-height: 1.7; }
+.hero-stat { min-width: 180px; display: flex; align-items: center; gap: 12px; padding: 18px 20px; border: 1px solid #29406a; border-radius: 16px; background: rgba(19, 34, 62, .65); }
+.hero-stat svg { color: #8ab4ff; }.hero-stat strong { display: block; font-size: 22px; }.hero-stat span { color: #8f9bb4; font-size: 12px; }
+.workspace { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.panel { border: 1px solid #27324c; border-radius: 22px; padding: 28px; background: linear-gradient(145deg, rgba(18,28,50,.93), rgba(10,15,29,.92)); box-shadow: 0 25px 70px rgba(0,0,0,.2); }
+.section-heading { display: flex; gap: 13px; align-items: center; }.section-heading h3 { margin: 4px 0 0; font-size: 22px; }.icon-box { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; color: #7fc9ff; background: #152743; }
+.prompt { color: #a1acc4; line-height: 1.6; font-size: 14px; }
+.option-list { display: grid; gap: 10px; margin-top: 20px; }.option { text-align: left; border: 1px solid #2c3b59; border-radius: 14px; padding: 14px 16px; background: #111a2d; cursor: pointer; transition: .2s; }.option:hover, .option.active { transform: translateY(-2px); border-color: #5da7ff; background: #17365c; }.option span, .option small { display: block; }.option small { color: #8794ad; margin-top: 4px; }
+.result-card { margin-top: 18px; padding: 14px 16px; border-left: 3px solid #67e3b5; background: rgba(41, 106, 88, .18); display: grid; gap: 5px; }.result-card span { color: #88b9b0; font-size: 12px; }.result-card strong { color: #b8ffe4; }
+.control-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }.control-grid label { border: 1px solid #2a3855; border-radius: 14px; padding: 14px; background: #0e1628; }.control-grid label:first-child { grid-column: 1 / -1; }.control-grid label > span { display: flex; gap: 7px; align-items: center; color: #aab5cd; font-size: 13px; }.control-grid input[type='range'] { width: 100%; margin: 12px 0 4px; accent-color: #71c8ff; }.control-grid input:not([type='range']), .control-grid select { width: 100%; margin-top: 10px; border: 1px solid #35415f; border-radius: 8px; padding: 9px; color: white; background: #15213a; }.control-grid strong { float: right; color: #8bcfef; }
+.purity-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }.purity-card div { padding: 15px; border-radius: 13px; background: #101a2e; border: 1px solid #27344e; }.purity-card p { color: #8794ad; font-size: 11px; margin: 0 0 7px; }.purity-card strong { font-size: 20px; color: #9edcff; }
+footer { display: flex; justify-content: space-between; padding: 30px 2px 8px; color: #66738e; font-size: 12px; }
+@media (max-width: 760px) { .hero, .workspace { grid-template-columns: 1fr; }.hero { padding-top: 42px; }.topbar, footer { align-items: flex-start; gap: 15px; flex-direction: column; }.status { margin-top: 10px; }.purity-card { grid-template-columns: 1fr; } }

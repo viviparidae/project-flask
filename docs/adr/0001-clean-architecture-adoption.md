@@ -1,6 +1,6 @@
-# [ADR-0001] Clean Architecture パターンの採用
+# [ADR-0001] Clean Architecture パターンの採用（Superseded）
 
-* **ステータス**: 承認 (Accepted)
+* **ステータス**: Superseded by ADR-0003
 * **決定者**: Project: FLASK アーキテクチャチーム
 * **日付**: 2026-10-06
 * **関連要求**: 全要求 (`REQ-CHEM-*`, `REQ-FATE-*`, `REQ-ATOM-*`, `REQ-LAB-*`, `REQ-TALK-*`)

@@ -1,6 +1,6 @@
-# [ADR-0002] 純度計算エンジンの決定論的モデル設計
+# [ADR-0002] 純度計算エンジンの決定論的モデル設計（Superseded）
 
-* **ステータス**: 承認 (Accepted)
+* **ステータス**: Superseded by ADR-0003
 * **決定者**: Project: FLASK アーキテクチャチーム
 * **日付**: 2026-10-06
 * **関連要求**: `REQ-CHEM-01`〜`REQ-CHEM-04`, `REQ-LAB-02`〜`REQ-LAB-03`, `NFR-PERF-01`, `NFR-REPR-01`
