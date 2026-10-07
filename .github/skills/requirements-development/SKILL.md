@@ -73,6 +73,7 @@ description: "Rules for writing behavior-focused requirements in Japanese BDD fo
 
 ### YAML におけるブレイクダウン記述例 (requirements.yml)
 
+```yml
 version: "1.0"
 project: "Project: FLASK"
 
@@ -109,6 +110,7 @@ user_stories:
           - "プレイヤーが「アスピリン（C9H8O4）」に必要な元素を選択している"
         when: "加熱温度を 100℃ 以上に設定して「精製」を実行した"
         then: "純度が 50% 以下に低下し、「不純物・焦げ」が発生する"
+```
 
 ---
 
