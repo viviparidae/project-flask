@@ -51,12 +51,24 @@ flowchart TD
 flowchart TD
     App[App.tsx]
     UI[React Components]
-    Engine[Purity Engine]
+    FateEngine[Fate Engine]
+    DialogueEngine[Dialogue Engine]
+    RecipeEngine[Recipe Engine]
+    ReactionEngine[Reaction Engine]
+    PurityEngine[Purity Engine]
     State[Local React State]
     App --> UI
     App --> State
-    UI --> Engine
-    Engine --> UI
+    UI --> FateEngine
+    UI --> DialogueEngine
+    UI --> RecipeEngine
+    UI --> ReactionEngine
+    UI --> PurityEngine
+    FateEngine --> UI
+    DialogueEngine --> UI
+    RecipeEngine --> UI
+    ReactionEngine --> UI
+    PurityEngine --> UI
 ```
 
 ## 3. レイヤー構成
@@ -66,13 +78,17 @@ src/
 ├── App.tsx                 # UI、状態フロー、要求IDの表示
 ├── main.tsx                 # Reactエントリーポイント
 ├── lib/
+│   ├── dialogueEngine.ts    # 線形対話エンジン
+│   ├── recipeEngine.ts      # レシピ選択・照合エンジン
+│   ├── reactionEngine.ts    # 酸洗浄反応計算エンジン
+│   ├── fateEngine.ts        # 因果判定エンジン
 │   └── purityEngine.ts      # 純度計算と反応制約の純粋関数
 └── styles.css              # レスポンシブUI
 ```
 
 ### 依存ルール
 
-- `App.tsx` は `purityEngine.ts` の公開APIのみを利用する。
+- `App.tsx` は `dialogueEngine.ts`, `recipeEngine.ts`, `reactionEngine.ts`, `fateEngine.ts`, `purityEngine.ts` の公開APIのみを利用する。
 - `purityEngine.ts` はReact、DOM、外部API、Python、Flaskを参照しない。
 - UIの状態変更は内部のReact stateに限定する。
 - 外部API、DB、サーバーへのアクセスは新規要件時に追加する。
@@ -83,6 +99,8 @@ src/
 | --- | --- | --- |
 | UI | Vitest + Testing Library | 主要な対話操作が成功する |
 | 純度計算 | Vitest | 同一入力で100%一致する |
+| 因果判定 | Vitest | REQ-FATE-01〜04の閾値に従う |
+| 反応計算 | Vitest | REQ-CHEM-01〜03の条件を満たす |
 | TypeScript | tsc | エラー0件 |
 | Production build | Vite | ビルド成功 |
 | Lint | ESLint | 警告0件 |

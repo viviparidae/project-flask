@@ -15,12 +15,15 @@ export type PurityResult = {
 }
 
 const equipmentCaps = [0, 85, 95, 99.9]
+const equipmentFluctuation = [0, 10, 4, 1]
 
 export function calculatePurity(input: PurityInput): PurityResult {
   const equipmentCap = equipmentCaps[Math.min(Math.max(input.equipmentTier, 1), 3)]
-  const temperatureFactor = input.targetTemperature >= 70 && input.targetTemperature <= 80
+  const fluctuation = equipmentFluctuation[Math.min(Math.max(input.equipmentTier, 1), 3)]
+  const effectiveTemperature = input.targetTemperature - fluctuation / 2
+  const temperatureFactor = effectiveTemperature >= 70 && effectiveTemperature <= 80
     ? 1
-    : input.targetTemperature < 70
+    : effectiveTemperature < 70
       ? 0.5
       : 0.2
   const catalystFactor = Math.min(input.catalystDrops, 2) / 2
@@ -29,7 +32,7 @@ export function calculatePurity(input: PurityInput): PurityResult {
     0,
     Math.min(equipmentCap, 99.9 * temperatureFactor * catalystFactor * reactionFactor),
   )
-  const hasToxicImpurities = input.targetTemperature >= 85 || purity < 50
+  const hasToxicImpurities = effectiveTemperature >= 85 || purity < 50
   const unreactedPercentage = Math.max(0, 100 - purity)
 
   return {
@@ -37,6 +40,6 @@ export function calculatePurity(input: PurityInput): PurityResult {
     purityPercentage: Math.round(purity * 10) / 10,
     hasToxicImpurities,
     unreactedPercentage: Math.round(unreactedPercentage * 10) / 10,
-    effectiveTemperature: input.targetTemperature,
+    effectiveTemperature,
   }
 }

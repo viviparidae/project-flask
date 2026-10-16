@@ -60,7 +60,7 @@ non_functional_requirements:
     type: Reliability
     scenario:
       source: "プレイヤー (UI / APIクライアント)"
-      刺激: "対話選択肢IDを送信する"
+      stimulus: "対話選択肢IDを送信する"
       環境: "通常稼働環境"
       対象: "DialogueEngine"
       応答: "次の発話ノード、開示度、アンロックフラグを決定論的に返却する"

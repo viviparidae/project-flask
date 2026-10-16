@@ -41,14 +41,20 @@ Pure TypeScript Function -> No external dependency
 - `tests/App.test.tsx`: UI操作の受入テスト
 - `tests/purity-engine.test.ts`: 要求IDと決定論性の検証
 
-## 5. 要求追跡
+## 5. 変更の原則
+
+- 実装変更の前に、関連するドキュメント（要件書、ADR、設計計画）を必ず更新する。
+- アーキテクチャ変更はADRとして記録し、実装に先立って承認を得る。
+- 未追跡の実装コードを作らない。
+
+## 6. 要求追跡
 
 - `REQ-CHEM-01〜04`: 純度計算
 - `REQ-TALK-01`: 対話診断
 - `NFR-PERF-01`: 応答性能
 - `NFR-REPR-01`: 決定論性
 
-## 6. ADR
+## 7. ADR
 
 - ADR-0003: React / Vite / TypeScript スタンドアロンフロントエンドの採用
 - ADR-0001、およびADR-0002は新構成への置換後にSupersededとして扱う
