@@ -19,7 +19,7 @@ import {
   PROC_LABELS,
   RECIPE_EP01,
 } from './lib/recipeEngine'
-import { calculateReaction, type AcidType } from './lib/reactionEngine'
+import { calculateReaction, reactionInputFromAttempt } from './lib/reactionEngine'
 import { judgeRestoration, type FateOutcome } from './lib/fateEngine'
 
 type Phase = 'dialogue' | 'lab' | 'result'
@@ -126,11 +126,7 @@ function LabPhase({
   onExecute: () => void
 }) {
   const result = matchRecipe(recipe, attempt)
-  const reaction = calculateReaction({
-    acidType: attempt.acid as AcidType,
-    concentration: attempt.concentration === 'light' ? 2 : attempt.concentration === 'standard' ? 3 : 5,
-    temperature: attempt.temperature === 'cold' ? 55 : attempt.temperature === 'warm' ? 75 : 90,
-  })
+  const reaction = calculateReaction(reactionInputFromAttempt(attempt))
 
   const gradeColors: Record<string, string> = {
     PERFECT: '#65e6ad',
@@ -346,11 +342,7 @@ function App() {
   }
 
   const handleExecute = () => {
-    const reaction = calculateReaction({
-      acidType: attempt.acid as AcidType,
-      concentration: attempt.concentration === 'light' ? 2 : attempt.concentration === 'standard' ? 3 : 5,
-      temperature: attempt.temperature === 'cold' ? 20 : attempt.temperature === 'warm' ? 40 : 55,
-    })
+    const reaction = calculateReaction(reactionInputFromAttempt(attempt))
     const fate = judgeRestoration(reaction.restorationScore, reaction.byproductHazard)
     setOutcome(fate)
     setTrust((t) => Math.max(0, t + fate.trustDelta))
