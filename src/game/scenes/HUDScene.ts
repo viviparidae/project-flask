@@ -7,6 +7,8 @@ import Phaser from 'phaser'
 export class HUDScene extends Phaser.Scene {
   private trustText!: Phaser.GameObjects.Text
   private goldText!: Phaser.GameObjects.Text
+  private trustIconText!: Phaser.GameObjects.Text
+  private goldIconText!: Phaser.GameObjects.Text
   private state!: any
   private bgGraphics!: Phaser.GameObjects.Graphics
 
@@ -39,8 +41,8 @@ export class HUDScene extends Phaser.Scene {
     }).setOrigin(1, 0)
 
     // アイコン
-    this.add.text(24, 20, '📊 ', { fontSize: '18px' })
-    this.add.text(width - 24, 20, ' 💰', { fontSize: '18px' }).setOrigin(1, 0)
+    this.trustIconText = this.add.text(24, 20, '📊', { fontSize: '18px' })
+    this.goldIconText = this.add.text(width - 24, 20, '💰', { fontSize: '18px' }).setOrigin(1, 0)
 
     this.updateDisplay()
 
@@ -68,8 +70,11 @@ export class HUDScene extends Phaser.Scene {
 
     this.trustText.setText(`評判: ${state.trust}`)
     this.goldText.setText(`${state.gold}G`)
-    this.goldText.setPosition(width - 24, 20 + state.safeArea.top)
-    this.trustText.setPosition(24, 20 + state.safeArea.top)
+    const textY = 20 + state.safeArea.top
+    this.trustIconText.setPosition(24, textY)
+    this.trustText.setPosition(52, textY)
+    this.goldIconText.setPosition(width - 24, textY)
+    this.goldText.setPosition(width - 52, textY)
 
     // セーフエリア対応で背景再描画
     this.drawHeader()
