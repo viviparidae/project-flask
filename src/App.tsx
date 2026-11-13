@@ -27,7 +27,7 @@ type Phase = 'dialogue' | 'lab' | 'result'
 const SPEAKER_COLORS: Record<string, string> = {
   narrator: '#7a8a9a',
   gard: '#c49060',
-  chemist: '#70b8a0',
+  錬金術師: '#70b8a0',
 }
 
 function moodBadge(mood: Mood) {
@@ -45,7 +45,7 @@ function moodBadge(mood: Mood) {
 function charEmoji(speaker: string, mood: Mood) {
   if (speaker === 'narrator') return '🏕️'
   if (speaker === 'gard') return '🧔'
-  if (speaker === 'chemist') return '⚗️'
+  if (speaker === '錬金術師') return '⚗️'
   return moodBadge(mood)
 }
 
@@ -323,9 +323,15 @@ function App() {
   const [dialogueState, setDialogueState] = useState(initialDialogueState)
   const [attempt, setAttempt] = useState<RecipeAttempt>({
     acid: 'Phosphoric',
+    acidQty: 'medium',
     concentration: 'standard',
+    concentrationQty: 'medium',
     temperature: 'warm',
+    temperatureQty: 'medium',
     procedure: 'standard',
+    procedureQty: 'basic',
+    reaction: 'standard',
+    filtration: 'standard',
   })
   const [outcome, setOutcome] = useState<FateOutcome | null>(null)
   const [trust, setTrust] = useState(50)
@@ -362,9 +368,15 @@ function App() {
     setDialogueState(initialDialogueState)
     setAttempt({
       acid: 'Phosphoric',
+      acidQty: 'medium',
       concentration: 'standard',
+      concentrationQty: 'medium',
       temperature: 'warm',
+      temperatureQty: 'medium',
       procedure: 'standard',
+      procedureQty: 'basic',
+      reaction: 'standard',
+      filtration: 'standard',
     })
     setOutcome(null)
     setPhase('dialogue')
@@ -376,7 +388,7 @@ function App() {
         <div className="game-title">
           <span className="game-title-icon">⚗️</span>
           <div>
-            <p className="game-subtitle">Chemistry Adventure</p>
+            <p className="game-subtitle">錬金術アドベンチャー</p>
             <h1 className="game-name">Project: FLASK</h1>
           </div>
         </div>

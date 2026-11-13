@@ -6,7 +6,7 @@
  * 会話を通じて依頼の内容・背景が自然に明らかになる。
  */
 
-export type Speaker = 'narrator' | 'gard' | 'chemist'
+export type Speaker = 'narrator' | 'gard' | '錬金術師'
 export type Mood = 'neutral' | 'sad' | 'tense' | 'hopeful' | 'analytical' | 'angry'
 
 export const MOOD_EMOJI: Record<Mood, string> = {
@@ -41,7 +41,7 @@ export const ep01Story: Record<string, DialogueNode> = {
     id: 's01',
     speaker: 'narrator',
     speakerName: '——',
-    text: '砂塵舞う荒野の端、日が傾きかけた頃。\n旅の化学者の仮設テントに、夕風が吹き込んだ。\n試薬の匂いと、遠い焚き火の煙の匂いが混ざる。',
+    text: '砂塵舞う荒野の端、日が傾きかけた頃。\n旅の錬金術師の仮設テントに、夕風が吹き込んだ。\n試薬の匂いと、遠い焚き火の煙の匂いが混ざる。',
     mood: 'neutral',
     nextNodeId: 's02',
   },
@@ -57,7 +57,7 @@ export const ep01Story: Record<string, DialogueNode> = {
     id: 's03',
     speaker: 'gard',
     speakerName: 'ガルド',
-    text: '「……やっている、か。\n旅の化学者というのは、あんたのことか。」',
+    text: '「……やっている、か。\n旅の錬金術師というのは、あんたのことか。」',
     mood: 'neutral',
     nextNodeId: 's04',
   },
@@ -79,8 +79,8 @@ export const ep01Story: Record<string, DialogueNode> = {
   },
   s06: {
     id: 's06',
-    speaker: 'chemist',
-    speakerName: '（化学者）',
+    speaker: '錬金術師',
+    speakerName: '（錬金術師）',
     text: '剣を手に取った。\n\n表面の腐食は二層になっている。\n上層に黒い酸化物——Fe₃O₄、いわゆる黒錆。\n下層には、白灰色の塩化物錆が見える。\n\n……塩分を含んだ環境で長期間さらされた証だ。',
     mood: 'analytical',
     nextNodeId: 's07',
@@ -95,8 +95,8 @@ export const ep01Story: Record<string, DialogueNode> = {
   },
   s08: {
     id: 's08',
-    speaker: 'chemist',
-    speakerName: '（化学者）',
+    speaker: '錬金術師',
+    speakerName: '（錬金術師）',
     text: '——港町。海塩にさらされた鉄に特有の腐食だ。\n\nFe₃O₄とFeCl₂の複合構造。\n塩酸を使えば塩化物錆を悪化させる危険がある。\nリン酸なら金属母材を傷めず、両方の錆に対処できる。\n\n……できる。やってみる価値はある。',
     mood: 'analytical',
     nextNodeId: 's09',

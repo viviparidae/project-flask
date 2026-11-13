@@ -10,15 +10,25 @@
 // 選択肢の型
 // ────────────────────────────────────────
 export type AcidChoice = 'HCl' | 'Citric' | 'Phosphoric'
+export type AcidQuantity = 'small' | 'medium' | 'large'
 export type ConcChoice = 'light' | 'standard' | 'strong'
+export type ConcQuantity = 'low' | 'medium' | 'high'
 export type TempChoice = 'cold' | 'warm' | 'hot'
+export type TempQuantity = 'low' | 'medium' | 'high'
 export type ProcChoice = 'quick' | 'standard'
+export type ProcQuantity = 'basic' | 'advanced'
 
 export type RecipeAttempt = {
-  acid: AcidChoice
-  concentration: ConcChoice
-  temperature: TempChoice
-  procedure: ProcChoice
+  acid: AcidChoice,
+  acidQty: AcidQuantity,
+  concentration: ConcChoice,
+  concentrationQty: ConcQuantity,
+  temperature: TempChoice,
+  temperatureQty: TempQuantity,
+  procedure: ProcChoice,
+  procedureQty: ProcQuantity,
+  reaction: ProcChoice,
+  filtration: ProcChoice,
 }
 
 // ────────────────────────────────────────
@@ -36,6 +46,10 @@ export type Recipe = {
   requiredConcentration: ConcChoice
   requiredTemperature: TempChoice
   requiredProcedure: ProcChoice
+  /** 追加処理ステップ1（反応時間） */
+  requiredReaction: ProcChoice
+  /** 追加処理ステップ2（濾過） */
+  requiredFiltration: ProcChoice
   /** 危険な組み合わせ（事故判定） */
   isDangerous: (a: RecipeAttempt) => boolean
 }
@@ -48,6 +62,8 @@ export type MatchDetail = {
   concentration: boolean
   temperature: boolean
   procedure: boolean
+  reaction: boolean
+  filtration: boolean
 }
 
 export type RecipeResult = {
@@ -64,7 +80,7 @@ export function matchRecipe(recipe: Recipe, attempt: RecipeAttempt): RecipeResul
     return {
       isAccident: true,
       matchScore: 0,
-      detail: { acid: false, concentration: false, temperature: false, procedure: false },
+      detail: { acid: false, concentration: false, temperature: false, procedure: false, reaction: false, filtration: false },
       grade: 'ACCIDENT',
     }
   }
@@ -74,14 +90,16 @@ export function matchRecipe(recipe: Recipe, attempt: RecipeAttempt): RecipeResul
     concentration: attempt.concentration === recipe.requiredConcentration,
     temperature:   attempt.temperature   === recipe.requiredTemperature,
     procedure:     attempt.procedure     === recipe.requiredProcedure,
+    reaction:      attempt.reaction      === recipe.requiredReaction,
+    filtration:    attempt.filtration    === recipe.requiredFiltration,
   }
 
   const matchScore = Object.values(detail).filter(Boolean).length
 
   const grade =
-    matchScore === 4 ? 'PERFECT'
-    : matchScore === 3 ? 'GOOD'
-    : matchScore === 2 ? 'PARTIAL'
+    matchScore >= 6 ? 'PERFECT'
+    : matchScore >= 4 ? 'GOOD'
+    : matchScore >= 2 ? 'PARTIAL'
     : 'FAIL'
 
   return { isAccident: false, matchScore, detail, grade }
@@ -104,6 +122,8 @@ export const RECIPE_EP01: Recipe = {
   requiredConcentration: 'standard',
   requiredTemperature: 'warm',
   requiredProcedure: 'standard',
+  requiredReaction: 'standard',
+  requiredFiltration: 'standard',
   // 高温（≥85℃）でHCl + 濃め → 塩化水素ガス発生
   isDangerous: (a) => a.acid === 'HCl' && a.concentration === 'strong' && a.temperature === 'hot',
 }

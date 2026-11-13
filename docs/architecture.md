@@ -107,6 +107,6 @@ src/
 
 ## 5. ADR
 
-- [ADR-0001: Clean Architecture pattern](./adr/0001-clean-architecture-adoption.md)
-- [ADR-0002: Deterministic Purity Engine](./adr/0002-deterministic-purity-engine.md)
-- [ADR-0003: React / Vite / TypeScript standalone frontend](./adr/0003-react-vite-standalone-frontend.md)
+- [ADR-0003: React / Vite / TypeScript standalone frontend](./adr/0003-react-vite-standalone-frontend.md) — **Superseded by ADR-0004**
+- [ADR-0004: Phaser ゲームエンジンへの移行](./adr/0004-phaser-game-engine-migration.md) — **Current**
+- Archived: [ADR-0001](./adr/archived/0001-clean-architecture-adoption.md), [ADR-0002](./adr/archived/0002-deterministic-purity-engine.md)

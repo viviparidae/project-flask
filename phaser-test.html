@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phaser Test</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <script type="module">
+      import Phaser from 'phaser'
+      
+      console.log('Phaser loaded:', Phaser)
+      
+      class TestScene extends Phaser.Scene {
+        constructor() {
+          super({ key: 'TestScene' })
+        }
+        
+        create() {
+          console.log('TestScene create called')
+          this.add.text(400, 300, 'Phaser Works!', { 
+            fontSize: '48px', 
+            color: '#ffffff',
+            fontFamily: 'system-ui, sans-serif'
+          }).setOrigin(0.5)
+          
+          this.add.circle(400, 400, 50, 0xff0000)
+        }
+      }
+      
+      const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        parent: 'game',
+        backgroundColor: '#1a1a2e',
+        disableVisibilityChange: true,
+        scene: [TestScene],
+      }
+      
+      console.log('Creating game...')
+      const game = new Phaser.Game(config)
+      ;(window as any).testGame = game
+      console.log('Game created:', game)
+    </script>
+  </body>
+</html>

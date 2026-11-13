@@ -26,7 +26,7 @@ export function judgeRestoration(
         '高濃度塩酸が過熱され、テント内に刺激臭が充満した。\n' +
         'ガルドが咳き込みながら飛び退き、テントの布が変色した。\n' +
         '剣は……かろうじて残ったが、あなたの評判は地に落ちた。\n' +
-        '「こんな化学者に頼んだ俺が馬鹿だった……」',
+        '「こんな錬金術師に頼んだ俺が馬鹿だった……」',
        trustDelta: -50,
        reward: 0,
        reputationNote: '近隣住民の警戒度が大幅に上昇した',
@@ -45,7 +45,7 @@ export function judgeRestoration(
         '鍛冶師の目に、光るものが見えた。',
       trustDelta: 35,
       reward: 280,
-      reputationNote: '「荒野の化学者」として鍛冶師組合に名が知られた',
+      reputationNote: '「荒野の錬金術師」として鍛冶師組合に名が知られた',
     }
   }
 
