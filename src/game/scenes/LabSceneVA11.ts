@@ -16,6 +16,18 @@ import {
   type AcidChoice,
 } from '../../lib/recipeEngine'
 import { GameState } from '../state/GameState'
+import { formatNoteTitle, getNote } from '../../lib/knowledge'
+import {
+  PREDICTIONS,
+  applyUnlockConstraints,
+  buildAnalysisMemo,
+  evaluatePrediction,
+  executePractice,
+  isParamUnlocked,
+  toLearnedSet,
+  visibleHints,
+  type PredictionId,
+} from '../../lib/learning'
 
 /**
  * LabSceneVA11 — 処置ラボ調合画面
@@ -53,6 +65,8 @@ export class LabSceneVA11 extends Phaser.Scene {
   private attempt: RecipeAttempt = createEmptyAttempt()
   private state!: GameState
   private currentResult!: TreatmentResult
+  private prediction: PredictionId | null = null
+  private modalObjects: Phaser.GameObjects.GameObject[] = []
 
   // UI 参照: 中央リアクター
   private shakerContainer!: Phaser.GameObjects.Container
@@ -87,8 +101,9 @@ export class LabSceneVA11 extends Phaser.Scene {
     // 背景描画
     this.drawBackground()
 
-    // 初期計算
-    this.currentResult = executeTreatment(this.attempt)
+    // 学習初期化（試作）: 観察パートで得たノートを付与し、未解放パラメータを固定する
+    for (const id of ['rust', 'chloride-rust', 'acid-strength']) this.state?.learn(id)
+    this.computeResult()
 
     // セーフエリア基準値
     const safeL = this.state?.safeArea?.left ?? 0
@@ -253,7 +268,7 @@ export class LabSceneVA11 extends Phaser.Scene {
     container.add(hintHeading)
 
     // ヒント4カード
-    const hints = REQUEST_CARD.hints
+    const hints = visibleHints(REQUEST_CARD.hints, this.learnedSet())
     const hintColors = [0x1e293b, 0x2c1b22, 0x2d2218, 0x192738]
     const borderColors = [0x38bdf8, 0xf87171, 0xfb923c, 0x4ade80]
     const textColors = ['#e2e8f0', '#fca5a5', '#fed7aa', '#bbf7d0']
@@ -637,7 +652,9 @@ export class LabSceneVA11 extends Phaser.Scene {
     btnContainer.add(checkText)
 
     btnContainer.setSize(w, h)
-    const hitRect = new Phaser.Geom.Rectangle(0, 0, w, h)
+    // Phaser の Container は displayOrigin が (w/2, h/2) になるため、
+    // hitArea をその分ずらさないと当たり判定が見た目より左上にずれる
+    const hitRect = new Phaser.Geom.Rectangle(w / 2, h / 2, w, h)
     btnContainer.setInteractive(hitRect, Phaser.Geom.Rectangle.Contains)
       .on('pointerdown', () => {
         if (this.isExecuting) return
@@ -669,14 +686,17 @@ export class LabSceneVA11 extends Phaser.Scene {
     const barY = height - safeB - 56
 
     // [🔄 リセット]
-    this.createActionButton(16, barY, 170, 50, '🔄 最初からリセット', '#641b1b', () => this.resetTreatment())
+    this.createActionButton(16, barY, 150, 50, '🔄 リセット', '#641b1b', () => this.resetTreatment())
 
     // [👁️ 詳細プレビュー]
-    this.createActionButton(200, barY, 190, 50, '👁️ 詳細プレビュー', '#1e3a5f', () => this.showFullPreview())
+    this.createActionButton(180, barY, 170, 50, '👁️ 詳細プレビュー', '#1e3a5f', () => this.showFullPreview())
+
+    // [🧪 端材で練習]（学習ループ試作: 失敗しても安全な練習処置）
+    this.createActionButton(364, barY, 180, 50, '🧪 端材で練習', '#7c2d12', () => this.runPractice())
 
     // [🗡️ 処置液で修復を実行する] (大型・目立つ)
-    const execW = Math.min(500, width - 410 - 16)
-    this.createActionButton(404, barY, execW, 50, '🗡️ 処置液で修復を実行する', '#059669', () => this.executeTreatment())
+    const execW = Math.min(706, width - 558 - 16)
+    this.createActionButton(558, barY, execW, 50, '🗡️ 処置液で修復を実行する', '#059669', () => this.executeTreatment())
   }
 
   private createActionButton(x: number, y: number, w: number, h: number, label: string, colorHex: string, onClick: () => void) {
@@ -703,7 +723,8 @@ export class LabSceneVA11 extends Phaser.Scene {
     container.add(text)
 
     container.setSize(w, h)
-    const hit = new Phaser.Geom.Rectangle(0, 0, w, h)
+    // 同上: Container の displayOrigin 分だけ hitArea をずらして見た目と一致させる
+    const hit = new Phaser.Geom.Rectangle(w / 2, h / 2, w, h)
     container.setInteractive(hit, Phaser.Geom.Rectangle.Contains)
       .on('pointerdown', () => {
         container.setScale(0.97)
@@ -721,11 +742,48 @@ export class LabSceneVA11 extends Phaser.Scene {
   }
 
   // ────────────────────────────────────────
+  // 学習進行ヘルパー
+  // ────────────────────────────────────────
+  private learnedSet() {
+    return toLearnedSet(this.state?.learnedNotes ?? [])
+  }
+
+  private computeResult() {
+    this.attempt = applyUnlockConstraints(this.attempt, this.learnedSet())
+    this.currentResult = executeTreatment(this.attempt)
+  }
+
+  private showToast(text: string, color = '#4ade80') {
+    const toast = this.add.text(this.scale.width / 2, this.scale.height / 2, text, {
+      fontSize: '20px',
+      color,
+      fontFamily: 'system-ui, sans-serif',
+      fontStyle: 'bold',
+      align: 'center',
+      lineSpacing: 8,
+      backgroundColor: '#0f172a',
+      padding: { x: 24, y: 14 },
+    }).setOrigin(0.5).setDepth(250)
+    this.tweens.add({
+      targets: toast,
+      alpha: 0,
+      y: toast.y - 40,
+      duration: 900,
+      delay: 1600,
+      onComplete: () => toast.destroy(),
+    })
+  }
+
+  // ────────────────────────────────────────
   // パラメータ選択ロジック
   // ────────────────────────────────────────
   private selectParam(groupKey: string, optionKey: string) {
+    if (!isParamUnlocked(groupKey, this.learnedSet())) {
+      this.showToast('🔒 まだ扱えない（知識ノート未獲得）\n端材で練習すると扱えるようになる', '#facc15')
+      return
+    }
     this.attempt = applyTypeChoice(this.attempt, groupKey, optionKey)
-    this.currentResult = executeTreatment(this.attempt)
+    this.computeResult()
 
     // 軽くシェイカー揺れ
     this.tweens.add({
@@ -921,13 +979,45 @@ export class LabSceneVA11 extends Phaser.Scene {
   }
 
   // ────────────────────────────────────────
+  // 練習処置（端材テストピース: 結果は数値のみ、本番の評判・所持金に影響しない）
+  // ────────────────────────────────────────
+  private runPractice() {
+    if (this.isExecuting) return
+    const practice = executePractice(this.attempt, this.learnedSet(), this.state?.practiceCount ?? 0)
+    if (this.state) {
+      this.state.practiceCount++
+      for (const id of practice.newlyLearned) this.state.learn(id)
+    }
+    this.attempt = practice.attempt
+    this.currentResult = practice.result
+    this.refreshAll()
+
+    const r = practice.result.reactionResult
+    const lines = [
+      `🧪 練習処置（端材）: 錆除去 ${r.corrosionRemoved}% / 金属侵食 ${r.metalDamage}%`,
+    ]
+    if (r.byproductHazard) lines.push('⚠️ 危ない泡立ちがあった。本番では事故になる組み合わせだ')
+    for (const id of practice.newlyLearned) {
+      const note = getNote(id)
+      if (note) lines.push(`📖 知識ノート獲得: ${formatNoteTitle(note, true)}`)
+    }
+    this.showToast(lines.join('\n'), practice.newlyLearned.length > 0 ? '#4ade80' : '#e0e0e0')
+  }
+
+  // ────────────────────────────────────────
   // 実行処理
   // ────────────────────────────────────────
   private executeTreatment() {
     if (this.isExecuting) return
+    if (this.prediction === null) {
+      this.showPredictionModal()
+      return
+    }
     this.isExecuting = true
 
     const result = this.currentResult
+    const verdict = evaluatePrediction(this.prediction, result)
+    const analysisMemo = buildAnalysisMemo(this.attempt, result, this.learnedSet())
 
     // 激しいシェイク & スワール演出
     this.tweens.add({
@@ -942,11 +1032,17 @@ export class LabSceneVA11 extends Phaser.Scene {
         this.shakerContainer.angle = 0
         this.isExecuting = false
 
+        // 結果を GameState に反映する（評判・所持金・完了フラグ）
+        // ※ VA11 フローでは従来この呼び出しがなく、結果が表示だけで終わっていた
+        this.state?.completeEpisode(result.fate.grade, result.fate.trustDelta, result.fate.reward)
+
         // 結果シーンへ遷移
         this.scene.start('ResultScene', {
           outcome: result.fate,
           reaction: result.reactionResult,
           attempt: this.attempt,
+          predictionComment: verdict.comment,
+          analysisMemo,
         })
       },
     })
@@ -958,7 +1054,8 @@ export class LabSceneVA11 extends Phaser.Scene {
   private resetTreatment() {
     if (this.isExecuting) return
     this.attempt = createEmptyAttempt()
-    this.currentResult = executeTreatment(this.attempt)
+    this.prediction = null
+    this.computeResult()
     this.refreshAll()
 
     const clearText = this.add.text(this.scale.width / 2, this.scale.height / 2, '🔄 リセット完了', {
@@ -976,6 +1073,56 @@ export class LabSceneVA11 extends Phaser.Scene {
       y: clearText.y - 40,
       duration: 600,
       onComplete: () => clearText.destroy(),
+    })
+  }
+
+  // ────────────────────────────────────────
+  // 予想モーダル（実行前に結果を予想させる）
+  // ────────────────────────────────────────
+  private closeModal() {
+    for (const obj of this.modalObjects) obj.destroy()
+    this.modalObjects = []
+  }
+
+  private showPredictionModal() {
+    const { width, height } = this.scale
+    this.closeModal()
+
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.75)
+      .setOrigin(0).setDepth(300).setInteractive()
+    this.modalObjects.push(overlay)
+
+    const title = this.add.text(width / 2, height / 2 - 170, '実行の前に — どうなると思う？', {
+      fontSize: '24px',
+      color: '#ffffff',
+      fontFamily: 'system-ui, sans-serif',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(301)
+    this.modalObjects.push(title)
+
+    PREDICTIONS.forEach((p, i) => {
+      const y = height / 2 - 110 + i * 72
+      const container = this.add.container(width / 2, y).setDepth(301)
+      const bg = this.add.graphics()
+      bg.fillStyle(0x1e3a5f, 0.95)
+      bg.fillRoundedRect(-280, -26, 560, 52, 10)
+      bg.lineStyle(1.5, 0x8bcfef, 0.6)
+      bg.strokeRoundedRect(-280, -26, 560, 52, 10)
+      const label = this.add.text(0, 0, p.label, {
+        fontSize: '17px',
+        color: '#ffffff',
+        fontFamily: 'system-ui, sans-serif',
+      }).setOrigin(0.5)
+      container.add([bg, label])
+      container.setSize(560, 52)
+      const hit = new Phaser.Geom.Rectangle(0, 0, 560, 52)
+      container.setInteractive(hit, Phaser.Geom.Rectangle.Contains)
+        .on('pointerdown', () => {
+          this.prediction = p.id
+          this.closeModal()
+          this.executeTreatment()
+        })
+      this.modalObjects.push(container)
     })
   }
 
