@@ -16,7 +16,7 @@ import {
   PROC_LABELS,
   matchRecipe,
 } from '../../lib/recipeEngine'
-import { calculateReaction, type AcidType } from '../../lib/reactionEngine'
+import { calculateReaction, reactionInputFromAttempt } from '../../lib/reactionEngine'
 import { judgeRestoration } from '../../lib/fateEngine'
 
 /**
@@ -410,11 +410,7 @@ export class LabScene extends Phaser.Scene {
     if (this.isExecuted) return
     this.isExecuted = true
 
-    const reaction = calculateReaction({
-      acidType: this.attempt.acid as AcidType,
-      concentration: this.attempt.concentration === 'light' ? 2 : this.attempt.concentration === 'standard' ? 3 : 5,
-      temperature: this.attempt.temperature === 'cold' ? 55 : this.attempt.temperature === 'warm' ? 75 : 90,
-    })
+    const reaction = calculateReaction(reactionInputFromAttempt(this.attempt))
 
     const fate = judgeRestoration(reaction.restorationScore, reaction.byproductHazard)
 

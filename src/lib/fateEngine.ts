@@ -27,7 +27,7 @@ export function judgeRestoration(
         'ガルドが咳き込みながら飛び退き、テントの布が変色した。\n' +
         '剣は……かろうじて残ったが、あなたの評判は地に落ちた。\n' +
         '「こんな錬金術師に頼んだ俺が馬鹿だった……」',
-       trustDelta: -50,
+       trustDelta: -40,
        reward: 0,
        reputationNote: '近隣住民の警戒度が大幅に上昇した',
     }
@@ -57,7 +57,7 @@ export function judgeRestoration(
         '大部分の腐食が除去され、剣の輪郭と刃紋が姿を現した。\n' +
         'わずかに残った痕跡が気になるが、実用には十分な状態だ。\n' +
         '「完璧じゃないが……これだけ戻れば上等だ。助かった。」',
-       trustDelta: 10,
+       trustDelta: 18,
        reward: 160,
        reputationNote: '信頼できる技術者として口コミが広まった',
     }
@@ -72,7 +72,7 @@ export function judgeRestoration(
         '処理を繰り返せば改善できるが、今回は力不足だった。\n' +
         '「……もう少しかと思ったが。まあ、またやり直せるか。」\n' +
         'ガルドの表情は複雑だ。',
-       trustDelta: 2,
+       trustDelta: 3,
        reward: 60,
        reputationNote: '',
     }
@@ -86,7 +86,7 @@ export function judgeRestoration(
        '刃の表面が白く荒れ、エッジが丸まっている。\n' +
        '「何をしてくれた……！ これじゃ使い物にならない！」\n' +
        'ガルドが激怒した。あなたは言葉を失った。',
-     trustDelta: -50,
+     trustDelta: -30,
      reward: 0,
      reputationNote: '鍛冶師組合から警告を受けた',
    }

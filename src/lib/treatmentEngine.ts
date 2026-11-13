@@ -24,7 +24,7 @@ import {
   PROC_LABELS,
   matchRecipe,
 } from './recipeEngine'
-import { calculateReaction, type ReactionResult } from './reactionEngine'
+import { calculateReaction, reactionInputFromAttempt, type ReactionResult } from './reactionEngine'
 import { judgeRestoration, type FateOutcome } from './fateEngine'
 
 // ────────────────────────────────────────
@@ -170,11 +170,7 @@ export function executeTreatment(attempt: RecipeAttempt, recipe: Recipe = RECIPE
       byproductHazard: true,
     }
   } else {
-    reactionResult = calculateReaction({
-      acidType: attempt.acid,
-      concentration: attempt.concentration === 'light' ? 2 : attempt.concentration === 'standard' ? 3 : 5,
-      temperature: attempt.temperature === 'cold' ? 55 : attempt.temperature === 'warm' ? 75 : 90,
-    })
+    reactionResult = calculateReaction(reactionInputFromAttempt(attempt))
   }
 
   // 3. 因果判定
