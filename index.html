@@ -16,15 +16,10 @@
         body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
       }
     </style>
+    <script type="module" crossorigin src="/project-flask/assets/index-fMWCH0xt.js"></script>
   </head>
   <body>
     <div id="game"></div>
     <!-- Phaser をグローバルに公開（rexUI プラグインが期待するため） -->
-    <script type="module">
-      import Phaser from 'phaser'
-      window.Phaser = Phaser
-      console.log('Phaser global set:', !!window.Phaser)
-    </script>
-    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
