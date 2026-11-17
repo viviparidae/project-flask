@@ -12,6 +12,21 @@ export class GameState {
   ep01Completed = false
   ep01Result: 'PERFECT' | 'GOOD' | 'PARTIAL' | 'DAMAGED' | null = null
 
+  // 学習進行（学習プログレッション試作）
+  learnedNotes: string[] = []   // 獲得済み知識ノート ID
+  practiceCount = 0             // 練習処置の累計回数
+
+  hasLearned(noteId: string): boolean {
+    return this.learnedNotes.includes(noteId)
+  }
+
+  /** ノートを獲得する。新規獲得なら true */
+  learn(noteId: string): boolean {
+    if (this.hasLearned(noteId)) return false
+    this.learnedNotes.push(noteId)
+    return true
+  }
+
   // セーフエリア（ピクセル）
   safeArea = {
     top: 0,
@@ -42,7 +57,7 @@ export class GameState {
 
   // エピソード完了時の処理
   completeEpisode(result: 'PERFECT' | 'GOOD' | 'PARTIAL' | 'DAMAGED', trustDelta: number, reward: number) {
-    this.trust = Phaser.Math.Clamp(this.trust + trustDelta, 0, 100)
+    this.trust = Math.max(0, Math.min(100, this.trust + trustDelta))
     this.gold += reward
     this.ep01Completed = true
     this.ep01Result = result

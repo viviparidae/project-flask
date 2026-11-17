@@ -10,15 +10,25 @@ export class ResultScene extends Phaser.Scene {
   private reaction!: any
   private attempt!: any
   private state!: any
+  private predictionComment?: string
+  private analysisMemo: string[] = []
 
   constructor() {
     super({ key: 'ResultScene' })
   }
 
-  init(data: { outcome: FateOutcome; reaction: any; attempt: any }) {
+  init(data: {
+    outcome: FateOutcome
+    reaction: any
+    attempt: any
+    predictionComment?: string
+    analysisMemo?: string[]
+  }) {
     this.outcome = data.outcome
     this.reaction = data.reaction
     this.attempt = data.attempt
+    this.predictionComment = data.predictionComment
+    this.analysisMemo = data.analysisMemo ?? []
   }
 
   create() {
@@ -54,6 +64,24 @@ export class ResultScene extends Phaser.Scene {
       align: 'center',
       wordWrap: { width: width - 80 },
     }).setOrigin(0.5)
+
+    // 学習フィードバック（予想の照合と分析メモ）— 学習ループ試作
+    if (this.predictionComment || this.analysisMemo.length > 0) {
+      const lines: string[] = []
+      if (this.predictionComment) lines.push(`🔮 ${this.predictionComment}`)
+      if (this.analysisMemo.length > 0) {
+        lines.push('📝 分析メモ')
+        for (const line of this.analysisMemo) lines.push(`・${line}`)
+      }
+      this.add.text(width / 2, 350, lines.join('\n'), {
+        fontSize: '15px',
+        color: '#facc15',
+        fontFamily: 'system-ui, sans-serif',
+        lineSpacing: 4,
+        align: 'center',
+        wordWrap: { width: width - 160 },
+      }).setOrigin(0.5, 0)
+    }
 
     // 評判・報酬変化
     this.createStatChanges()
@@ -143,15 +171,15 @@ export class ResultScene extends Phaser.Scene {
     const { width } = this.scale
     const state = this.state
 
-    const panelY = 480
+    const panelY = 460
     const panelWidth = width - 80
 
     // パネル背景
     const bg = this.add.graphics()
     bg.fillStyle(0x16213e, 0.9)
-    bg.fillRoundedRect(40, panelY - 20, panelWidth, 140, 12)
+    bg.fillRoundedRect(40, panelY - 20, panelWidth, 130, 12)
     bg.lineStyle(1, 0x3d4a5c, 0.5)
-    bg.strokeRoundedRect(40, panelY - 20, panelWidth, 140, 12)
+    bg.strokeRoundedRect(40, panelY - 20, panelWidth, 130, 12)
 
     // 評判変化
     const trustColor = this.outcome.trustDelta >= 0 ? '#65e6ad' : '#f87171'
@@ -209,7 +237,9 @@ export class ResultScene extends Phaser.Scene {
     const { width, height } = this.scale
     const state = this.state
 
-    const btn = this.add.container(width / 2, height - state.safeArea.bottom - 80)
+    // 下に下げて評判メモ（パネル下端 580）と重ならないようにする。
+    // ボタン下端 642 はセーフエリア下端（720 - 57.6 = 662.4）より上。
+    const btn = this.add.container(width / 2, height - state.safeArea.bottom - 50)
 
     const bg = this.add.graphics()
     bg.fillStyle(0x3d4a5c, 1)

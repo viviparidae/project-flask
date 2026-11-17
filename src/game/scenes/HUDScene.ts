@@ -11,6 +11,8 @@ export class HUDScene extends Phaser.Scene {
   private goldIconText!: Phaser.GameObjects.Text
   private state!: any
   private bgGraphics!: Phaser.GameObjects.Graphics
+  private lastTrust = Number.NaN
+  private lastGold = Number.NaN
 
   constructor() {
     super({ key: 'HUDScene' })
@@ -64,9 +66,19 @@ export class HUDScene extends Phaser.Scene {
     this.bgGraphics.fillRect(0, 56 + state.safeArea.top, width, 2)
   }
 
+  update() {
+    // GameState は plain オブジェクトなので registry の changedata では変更を検知できない。
+    // 毎フレーム、表示中の値と実値が食い違ったら再描画する。
+    if (this.state && (this.state.trust !== this.lastTrust || this.state.gold !== this.lastGold)) {
+      this.updateDisplay()
+    }
+  }
+
   private updateDisplay() {
     const state = this.state
     const { width } = this.scale
+    this.lastTrust = state.trust
+    this.lastGold = state.gold
 
     this.trustText.setText(`評判: ${state.trust}`)
     this.goldText.setText(`${state.gold}G`)
