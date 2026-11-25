@@ -2,7 +2,7 @@
  * treatmentEngine.ts — 化学処置レシピエンジン
  *
  * 既存の reactionEngine.ts / recipeEngine.ts をラップし、
- * VA-11 風 UI（選択グリッド）から呼び出せるインターフェースを提供。
+ * ラボ画面の UI（選択グリッド）から呼び出せるインターフェースを提供。
  */
 
 import {

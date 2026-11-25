@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { BootScene } from './scenes/BootScene'
 import { PreloadScene } from './scenes/PreloadScene'
 import { DialogueScene } from './scenes/DialogueScene'
-import { LabSceneVA11 } from './scenes/LabSceneVA11'
+import { LabScene } from './scenes/LabScene'
 import { ResultScene } from './scenes/ResultScene'
 import { HUDScene } from './scenes/HUDScene'
 import { GameState } from './state/GameState'
@@ -24,7 +24,7 @@ export class Game extends Phaser.Game {
       dom: {
         createContainer: false,
       },
-      scene: [BootScene, PreloadScene, DialogueScene, LabSceneVA11, ResultScene, HUDScene],
+      scene: [BootScene, PreloadScene, DialogueScene, LabScene, ResultScene, HUDScene],
       physics: {
         default: 'arcade',
         arcade: { debug: false },

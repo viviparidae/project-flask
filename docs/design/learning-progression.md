@@ -47,8 +47,8 @@
 | ステップ | プレイヤーの行為 | 対応フェーズ | 実装先（現行構成） |
 |----------|------------------|--------------|--------------------|
 | 観察 | 依頼品・依頼人を調べ、着目点（分析タグ）を集める | フェーズ1: 対話 | DialogueScene / dialogueEngine |
-| 予想 | 処方の前に「どうなるか」を選ぶ | フェーズ2 冒頭 | LabSceneVA11（新規） |
-| 実験 | パラメータを選んで処置を実行（まず練習処置で試せる） | フェーズ2: ラボ | LabSceneVA11 / treatmentEngine |
+| 予想 | 処方の前に「どうなるか」を選ぶ | フェーズ2 冒頭 | LabScene（新規） |
+| 実験 | パラメータを選んで処置を実行（まず練習処置で試せる） | フェーズ2: ラボ | LabScene / treatmentEngine |
 | 解説 | 結果と予想を比べ、「なぜ」を平易に理解する | フェーズ3: 結果 | ResultScene / fateEngine |
 | ノート獲得 | 学んだ概念が知識ノートに登録され、以後ヒント・表記に反映される | フェーズ3 末尾 | GameState（新規） |
 
@@ -189,8 +189,8 @@ EP01 仕様書にある分岐会話＋分析タグの設計を実装し、対話
 |----------|------|----------|
 | A | 知識ノートの基盤（データ定義・GameState 保持・ノート画面・二段表記） | src/lib/knowledge.ts（新規）, GameState, HUDScene |
 | B | EP01 観察パート（分析タグ分岐の実装） | dialogueEngine, DialogueScene |
-| C | 段階解放と練習処置 | treatmentEngine（PARAM_ORDER 適用）, LabSceneVA11 |
-| D | 予想フェーズと分析メモ | LabSceneVA11, fateEngine（要因分解の追加）, ResultScene |
+| C | 段階解放と練習処置 | treatmentEngine（PARAM_ORDER 適用）, LabScene |
+| D | 予想フェーズと分析メモ | LabScene, fateEngine（要因分解の追加）, ResultScene |
 | E | 検証 | 勝敗テストの拡張（ノート未獲得時のヒント制限、解放前パラメータの固定など）、知識ゼロ前提のプレイスルー確認 |
 
 数値仕様（最適条件・スコア計算・結末表）には手を入れないため、既存の勝敗テスト（tests/ep01-treatment.test.ts）は原則そのまま有効であること。

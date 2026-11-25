@@ -178,9 +178,9 @@ export class DialogueScene extends Phaser.Scene {
     if (!node) return
 
     if (node.nextNodeId === null) {
-      // 対話完了 → LabSceneVA11 へ
+      // 対話完了 → LabScene へ
       this.input.off('pointerdown', this.advanceDialogue, this)
-      this.scene.start('LabSceneVA11', { gameState: this.game.registry.get('gameState') })
+      this.scene.start('LabScene', { gameState: this.game.registry.get('gameState') })
     } else {
       this.dialogueState.nodeId = node.nextNodeId
       this.showCurrentNode()

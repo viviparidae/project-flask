@@ -4,7 +4,7 @@ import { GameState } from '../src/game/state/GameState'
 /**
  * [GameState 検証]
  * completeEpisode が評判・所持金へ正しく反映されること。
- * VA11 フローでは従来 LabSceneVA11 から呼ばれておらず、結果が表示だけで
+ * 従来 LabScene から呼ばれておらず、結果が表示だけで
  * 終わっていた（HUD が初期値のままになる）バグの回帰防止。
  */
 describe('[GameState] completeEpisode', () => {
