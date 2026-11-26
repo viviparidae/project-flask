@@ -8,9 +8,23 @@ export class GameState {
   gold = 80               // 所持金
   currentEpisode = 'ep01' // 現在のエピソード
 
+  // Phase 3: 1日の進行管理
+  currentDay = 1                    // 現在の日数
+  clientQueue: string[] = []        // 今日の依頼人キュー（エピソードID）
+  completedClients: string[] = []   // 完了済み依頼人
+  isDayEnd = false                  // 日の終わり（振り返り）フラグ
+
   // エピソード1 固有
   ep01Completed = false
   ep01Result: 'PERFECT' | 'GOOD' | 'PARTIAL' | 'DAMAGED' | null = null
+
+  // エピソード2 固有
+  ep02Completed = false
+  ep02Result: 'PERFECT' | 'GOOD' | 'PARTIAL' | 'DAMAGED' | null = null
+
+  // エピソード3 固有
+  ep03Completed = false
+  ep03Result: 'PERFECT' | 'GOOD' | 'PARTIAL' | 'DAMAGED' | null = null
 
   // 学習進行（学習プログレッション試作）
   learnedNotes: string[] = []   // 獲得済み知識ノート ID
@@ -67,6 +81,62 @@ export class GameState {
   resetForNextEpisode() {
     this.ep01Completed = false
     this.ep01Result = null
+    this.ep02Completed = false
+    this.ep02Result = null
+    this.ep03Completed = false
+    this.ep03Result = null
     // trust と gold は引き継ぐ
+  }
+
+  // Phase 3: 1日の初期化（依頼人キューをセットアップ）
+  initializeDay() {
+    this.currentDay++
+    this.clientQueue = ['ep01', 'ep02', 'ep03']
+    this.completedClients = []
+    this.isDayEnd = false
+    this.currentEpisode = 'ep01'
+  }
+
+  // 現在の依頼人を取得
+  getCurrentClient(): string | null {
+    if (this.clientQueue.length === 0) return null
+    return this.clientQueue[0]
+  }
+
+  // 依頼人完了処理
+  completeClient(episodeId: string, result: 'PERFECT' | 'GOOD' | 'PARTIAL' | 'DAMAGED', trustDelta: number, reward: number) {
+    this.trust = Math.max(0, Math.min(100, this.trust + trustDelta))
+    this.gold += reward
+    this.completedClients.push(episodeId)
+    this.clientQueue.shift()
+
+    // エピソード固有の結果を記録
+    switch (episodeId) {
+      case 'ep01':
+        this.ep01Completed = true
+        this.ep01Result = result
+        break
+      case 'ep02':
+        this.ep02Completed = true
+        this.ep02Result = result
+        break
+      case 'ep03':
+        this.ep03Completed = true
+        this.ep03Result = result
+        break
+    }
+
+    // 次の依頼人へ、または日の終わりへ
+    if (this.clientQueue.length > 0) {
+      this.currentEpisode = this.clientQueue[0]
+    } else {
+      this.isDayEnd = true
+    }
+  }
+
+  // 日の終わり（振り返り）完了
+  completeDayEnd() {
+    this.isDayEnd = false
+    // 次の日の準備は次回 initializeDay で行う
   }
 }
