@@ -4,8 +4,10 @@ import { PreloadScene } from './scenes/PreloadScene'
 import { DialogueScene } from './scenes/DialogueScene'
 import { LabScene } from './scenes/LabScene'
 import { ResultScene } from './scenes/ResultScene'
+import { DayEndScene } from './scenes/DayEndScene'
 import { HUDScene } from './scenes/HUDScene'
 import { GameState } from './state/GameState'
+import { createInitialKnowledgeState } from '../lib/knowledge'
 
 export class Game extends Phaser.Game {
   constructor() {
@@ -24,7 +26,7 @@ export class Game extends Phaser.Game {
       dom: {
         createContainer: false,
       },
-      scene: [BootScene, PreloadScene, DialogueScene, LabScene, ResultScene, HUDScene],
+      scene: [BootScene, PreloadScene, DialogueScene, LabScene, ResultScene, DayEndScene, HUDScene],
       physics: {
         default: 'arcade',
         arcade: { debug: false },
@@ -38,7 +40,12 @@ export class Game extends Phaser.Game {
 
     super(config)
 
-    this.registry.set('gameState', new GameState())
+    const gameState = new GameState()
+    this.registry.set('gameState', gameState)
+    this.registry.set('knowledgeState', createInitialKnowledgeState())
+    
+    // 最初の日を初期化
+    gameState.initializeDay()
 
     this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
       const state = this.registry.get('gameState') as GameState
