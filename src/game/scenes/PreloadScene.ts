@@ -43,6 +43,6 @@ export class PreloadScene extends Phaser.Scene {
     this.scene.run('HUDScene')
 
     // メインシーンへ
-    this.scene.start('DialogueScene')
+    this.scene.start('CounterScene')
   }
 }
