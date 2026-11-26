@@ -1,12 +1,149 @@
 /**
- * recipeEngine.ts — レシピ選択・照合エンジン
+ * recipeEngine.ts — レシピ定義・ステップ実行エンジン
  *
- * プレイヤーは「試薬・濃度・温度・手順」を選択して実行する。
- * 会話で得た情報を基にレシピを解釈するのがゲームの核心。
+ * 新設計: レシピカードに材料・手順・「なぜこの手順か」を提示し、
+ * プレイヤーは手順を順番に実行するだけ。
+ * 配合・濃度・温度の数値選択は UI から外す。
  */
 
 // ────────────────────────────────────────
-// 選択肢の型
+// レシピ手順の型
+// ────────────────────────────────────────
+export type RecipeStep = {
+  /** 手順ID（順序） */
+  id: number
+  /** 表示用ラベル（例: "リン酸を加える"） */
+  label: string
+  /** なぜこの手順なのか（1行） */
+  reason: string
+  /** 正解のアクション種別（将来拡張用） */
+  actionType: 'add_reagent' | 'heat' | 'wait' | 'filter'
+  /** 正解パラメータ（レシピ記載内容） */
+  correctParams: {
+    reagent?: string
+    concentration?: string
+    temperature?: string
+    duration?: string
+    filtration?: string
+  }
+}
+
+// ────────────────────────────────────────
+// レシピ定義
+// ────────────────────────────────────────
+export type Recipe = {
+  id: string
+  name: string
+  compound: string
+  /** 材料リスト（表示用） */
+  ingredients: string[]
+  /** 手順リスト（順序通り実行） */
+  steps: RecipeStep[]
+  /** 危険な組み合わせ（事故判定） */
+  isDangerous: (attempt: RecipeAttempt) => boolean
+}
+
+// ────────────────────────────────────────
+// プレイヤーの試行状態（簡易版）
+// ────────────────────────────────────────
+export type RecipeAttempt = {
+  /** 現在の手順インデックス（0-based） */
+  currentStepIndex: number
+  /** 完了済み手順の記録 */
+  completedSteps: {
+    stepId: number
+    /** プレイヤーが選んだアクション（正解なら正解パラメータ、ミスなら別の値） */
+    playerParams: Record<string, string>
+    isCorrect: boolean
+  }[]
+  /** ミスした手順の数 */
+  mistakeCount: number
+}
+
+// ────────────────────────────────────────
+// 実行結果
+// ────────────────────────────────────────
+export type RecipeResult = {
+  isComplete: boolean
+  isAccident: boolean
+  /** 品質段階: 'perfect' | 'good' | 'partial' | 'failed' */
+  qualityTier: 'perfect' | 'good' | 'partial' | 'failed'
+  /** 完了済み手順数 / 全手順数 */
+  progress: { completed: number; total: number }
+  /** ミスの詳細 */
+  mistakes: { stepId: number; expected: string; actual: string; playerParams: Record<string, string> }[]
+}
+
+// ────────────────────────────────────────
+// エピソード1 レシピ定義
+// ────────────────────────────────────────
+export const RECIPE_EP01: Recipe = {
+  id: 'ep01-sword-restoration',
+  name: '古剣 腐食除去処置',
+  compound: 'リン酸洗浄液（pH 2〜3、温度 35〜45℃）',
+  ingredients: [
+    'リン酸 (H₃PO₄) — 標準濃度',
+    '蒸留水 — 希釈用',
+    '古剣（対象）',
+    '耐熱ガラス容器',
+    '濾過紙・漏斗',
+  ],
+  steps: [
+    {
+      id: 0,
+      label: 'リン酸を標準濃度で準備する',
+      reason: '塩化物錆に有効で、金属母材を傷めない濃度が標準濃度だから',
+      actionType: 'add_reagent',
+      correctParams: { reagent: 'Phosphoric', concentration: 'standard' },
+    },
+    {
+      id: 1,
+      label: '蒸留水で希釈してpH 2〜3に調整する',
+      reason: '強すぎると鉄を侵食し、弱すぎると錆が落ちないから',
+      actionType: 'add_reagent',
+      correctParams: { reagent: 'water', concentration: 'adjusted' },
+    },
+    {
+      id: 2,
+      label: '中温（35〜45℃）で加温する',
+      reason: '反応速度と安全性のバランスが取れる適温だから',
+      actionType: 'heat',
+      correctParams: { temperature: 'warm' },
+    },
+    {
+      id: 3,
+      label: '標準時間浸透させる',
+      reason: '深部の塩化物錆まで届くには十分な時間が必要だから',
+      actionType: 'wait',
+      correctParams: { duration: 'standard' },
+    },
+    {
+      id: 4,
+      label: '丁寧に濾過して完成',
+      reason: '不純物を取り除き、純度の高い洗浄液に仕上げるため',
+      actionType: 'filter',
+      correctParams: { filtration: 'standard' },
+    },
+  ],
+  // 旧設計の危険条件（HCl + 濃め + 高温）をレシピ逸脱時の事故として残す
+  isDangerous: (attempt) => false, // 新設計では手順実行なので事故判定は手順ミスで代替
+}
+
+// ────────────────────────────────────────
+// レシピブック
+// ────────────────────────────────────────
+export type RecipeBook = {
+  episode: string
+  recipes: Recipe[]
+}
+
+export const RECIPE_BOOK_EP01: RecipeBook = {
+  episode: 'ep01',
+  recipes: [RECIPE_EP01],
+}
+
+// ────────────────────────────────────────
+// 互換性のための旧型定義（段階的移行用）
 // ────────────────────────────────────────
 export type AcidChoice = 'HCl' | 'Citric' | 'Phosphoric'
 export type AcidQuantity = 'small' | 'medium' | 'large'
@@ -17,45 +154,21 @@ export type TempQuantity = 'low' | 'medium' | 'high'
 export type ProcChoice = 'quick' | 'standard'
 export type ProcQuantity = 'basic' | 'advanced'
 
-export type RecipeAttempt = {
-  acid: AcidChoice,
-  acidQty: AcidQuantity,
-  concentration: ConcChoice,
-  concentrationQty: ConcQuantity,
-  temperature: TempChoice,
-  temperatureQty: TempQuantity,
-  procedure: ProcChoice,
-  procedureQty: ProcQuantity,
-  reaction: ProcChoice,
-  filtration: ProcChoice,
+// 旧 RecipeAttempt（互換用）
+export type LegacyRecipeAttempt = {
+  acid: AcidChoice
+  acidQty: AcidQuantity
+  concentration: ConcChoice
+  concentrationQty: ConcQuantity
+  temperature: TempChoice
+  temperatureQty: TempQuantity
+  procedure: ProcChoice
+  procedureQty: ProcQuantity
+  reaction: ProcChoice
+  filtration: ProcChoice
 }
 
-// ────────────────────────────────────────
-// レシピ定義
-// ────────────────────────────────────────
-export type Recipe = {
-  id: string
-  /** 依頼カード上部のタイトル */
-  name: string
-  /** 完成物の化学的説明 */
-  compound: string
-  /** 会話から読み取るべきヒント（プレイヤーへのガイド） */
-  hints: string[]
-  requiredAcid: AcidChoice
-  requiredConcentration: ConcChoice
-  requiredTemperature: TempChoice
-  requiredProcedure: ProcChoice
-  /** 追加処理ステップ1（反応時間） */
-  requiredReaction: ProcChoice
-  /** 追加処理ステップ2（濾過） */
-  requiredFiltration: ProcChoice
-  /** 危険な組み合わせ（事故判定） */
-  isDangerous: (a: RecipeAttempt) => boolean
-}
-
-// ────────────────────────────────────────
-// 照合結果
-// ────────────────────────────────────────
+// 旧 MatchDetail（互換用）
 export type MatchDetail = {
   acid: boolean
   concentration: boolean
@@ -65,97 +178,127 @@ export type MatchDetail = {
   filtration: boolean
 }
 
-export type RecipeResult = {
+// 旧 RecipeResult（互換用）
+export type LegacyRecipeResult = {
   isAccident: boolean
-  matchScore: number   // 0〜4 (正解パラメータ数)
+  matchScore: number
   detail: MatchDetail
   grade: 'PERFECT' | 'GOOD' | 'PARTIAL' | 'FAIL' | 'ACCIDENT'
 }
 
-export function matchRecipe(recipe: Recipe, attempt: RecipeAttempt): RecipeResult {
-  const isAccident = recipe.isDangerous(attempt)
+// ────────────────────────────────────────
+// 表示用ラベル（互換用）
+// ────────────────────────────────────────
+export const ACID_LABELS: Record<AcidChoice, { short: string; long: string; note: string }> = {
+  HCl: { short: '塩酸', long: '塩酸 (HCl)', note: '強力・速効。塩化物錆には悪作用の危険あり' },
+  Citric: { short: 'クエン酸', long: 'クエン酸', note: '穏やか・安全。高温・高濃度でないと効果薄' },
+  Phosphoric: { short: 'リン酸', long: 'リン酸 (H₃PO₄)', note: '塩化物錆に有効。副産物が少なく扱いやすい' },
+}
 
-  if (isAccident) {
-    return {
-      isAccident: true,
-      matchScore: 0,
-      detail: { acid: false, concentration: false, temperature: false, procedure: false, reaction: false, filtration: false },
-      grade: 'ACCIDENT',
-    }
-  }
+export const CONC_LABELS: Record<ConcChoice, { short: string; note: string }> = {
+  light: { short: '薄め', note: '安全だが効果が弱い' },
+  standard: { short: '標準', note: 'バランスが良い' },
+  strong: { short: '濃め', note: '効果は高いが侵食リスクあり' },
+}
 
-  const detail: MatchDetail = {
-    acid:          attempt.acid          === recipe.requiredAcid,
-    concentration: attempt.concentration === recipe.requiredConcentration,
-    temperature:   attempt.temperature   === recipe.requiredTemperature,
-    procedure:     attempt.procedure     === recipe.requiredProcedure,
-    reaction:      attempt.reaction      === recipe.requiredReaction,
-    filtration:    attempt.filtration    === recipe.requiredFiltration,
-  }
+export const TEMP_LABELS: Record<TempChoice, { short: string; note: string }> = {
+  cold: { short: '低温', note: '反応が遅い。深部の錆に届きにくい' },
+  warm: { short: '中温', note: '適温。反応速度と安全性のバランス良' },
+  hot: { short: '高温', note: '反応が速いが金属へのダメージ増加' },
+}
 
-  const matchScore = Object.values(detail).filter(Boolean).length
-
-  const grade =
-    matchScore >= 6 ? 'PERFECT'
-    : matchScore >= 4 ? 'GOOD'
-    : matchScore >= 2 ? 'PARTIAL'
-    : 'FAIL'
-
-  return { isAccident: false, matchScore, detail, grade }
+export const PROC_LABELS: Record<ProcChoice, { short: string; note: string }> = {
+  quick: { short: '短時間処置', note: '表面の錆のみ除去。深部に届かない可能性' },
+  standard: { short: '標準処置', note: '十分な浸透時間。深部の錆まで対処可能' },
 }
 
 // ────────────────────────────────────────
-// エピソード1 レシピ定義
+// 空の試行状態作成（新設計）
 // ────────────────────────────────────────
-export const RECIPE_EP01: Recipe = {
-  id: 'ep01-sword-restoration',
-  name: '古剣 腐食除去処置',
-  compound: 'リン酸洗浄液（pH 2〜3、温度 35〜45℃）',
+export function createEmptyAttempt(): RecipeAttempt {
+  return {
+    currentStepIndex: 0,
+    completedSteps: [],
+    mistakeCount: 0,
+  }
+}
+
+// ────────────────────────────────────────
+// 手順実行
+// ────────────────────────────────────────
+export function executeStep(
+  recipe: Recipe,
+  attempt: RecipeAttempt,
+  playerParams: Record<string, string>
+): RecipeAttempt {
+  const currentStep = recipe.steps[attempt.currentStepIndex]
+  if (!currentStep) return attempt // 完了済み
+
+  // 正解判定：プレイヤーの選択が正解パラメータと一致するか
+  const isCorrect = Object.entries(currentStep.correctParams).every(
+    ([key, expected]) => playerParams[key] === expected
+  )
+
+  const newAttempt: RecipeAttempt = {
+    currentStepIndex: attempt.currentStepIndex + 1,
+    completedSteps: [
+      ...attempt.completedSteps,
+      {
+        stepId: currentStep.id,
+        playerParams,
+        isCorrect,
+      },
+    ],
+    mistakeCount: attempt.mistakeCount + (isCorrect ? 0 : 1),
+  }
+
+  return newAttempt
+}
+
+// ────────────────────────────────────────
+// 完了判定・品質評価
+// ────────────────────────────────────────
+export function evaluateRecipe(recipe: Recipe, attempt: RecipeAttempt): RecipeResult {
+  const totalSteps = recipe.steps.length
+  const completed = attempt.completedSteps.length
+  const mistakes = attempt.completedSteps.filter((s) => !s.isCorrect)
+
+  let qualityTier: RecipeResult['qualityTier'] = 'perfect'
+  if (mistakes.length === 0) {
+    qualityTier = 'perfect'
+  } else if (mistakes.length === 1) {
+    qualityTier = 'good'
+  } else if (mistakes.length === 2) {
+    qualityTier = 'partial'
+  } else {
+    qualityTier = 'failed'
+  }
+
+  const mistakeDetails = mistakes.map((m) => {
+    const step = recipe.steps.find((s) => s.id === m.stepId)
+    const expected = step ? JSON.stringify(step.correctParams) : 'unknown'
+    return { stepId: m.stepId, expected, actual: JSON.stringify(m.playerParams), playerParams: m.playerParams }
+  })
+
+  return {
+    isComplete: completed >= totalSteps,
+    isAccident: false, // 新設計では事故は品質段階で表現
+    qualityTier,
+    progress: { completed, total: totalSteps },
+    mistakes: mistakeDetails,
+  }
+}
+
+// ────────────────────────────────────────
+// 依頼カード情報（互換用）
+// ────────────────────────────────────────
+export const REQUEST_CARD = {
+  name: RECIPE_EP01.name,
+  compound: RECIPE_EP01.compound,
   hints: [
     '港町で長年保管 → 塩分による塩化物錆を含む',
     '塩化物錆に塩酸（HCl）を使うと錆が悪化する恐れ',
     '高炭素鋼は過熱に敏感 → 高温は避けたい',
     '深部の錆には標準時間の処置が必要',
   ],
-  requiredAcid: 'Phosphoric',
-  requiredConcentration: 'standard',
-  requiredTemperature: 'warm',
-  requiredProcedure: 'standard',
-  requiredReaction: 'standard',
-  requiredFiltration: 'standard',
-  // 高温（≥85℃）でHCl + 濃め → 塩化水素ガス発生
-  isDangerous: (a) => a.acid === 'HCl' && a.concentration === 'strong' && a.temperature === 'hot',
 }
-
-export type RecipeBook = {
-  episode: string
-  recipes: Recipe[]
-}
-
-export const RECIPE_BOOK_EP01: RecipeBook = {
-  episode: 'ep01',
-  recipes: [RECIPE_EP01],
-}
-export const ACID_LABELS: Record<AcidChoice, { short: string; long: string; note: string }> = {
-  HCl:        { short: '塩酸',   long: '塩酸 (HCl)',        note: '強力・速効。塩化物錆には悪作用の危険あり' },
-  Citric:     { short: 'クエン酸', long: 'クエン酸',           note: '穏やか・安全。高温・高濃度でないと効果薄' },
-  Phosphoric: { short: 'リン酸',  long: 'リン酸 (H₃PO₄)',    note: '塩化物錆に有効。副産物が少なく扱いやすい' },
-}
-
-export const CONC_LABELS: Record<ConcChoice, { short: string; note: string }> = {
-  light:    { short: '薄め',  note: '安全だが効果が弱い' },
-  standard: { short: '標準',  note: 'バランスが良い' },
-  strong:   { short: '濃め',  note: '効果は高いが侵食リスクあり' },
-}
-
-export const TEMP_LABELS: Record<TempChoice, { short: string; note: string }> = {
-  cold: { short: '低温',  note: '反応が遅い。深部の錆に届きにくい' },
-  warm: { short: '中温',  note: '適温。反応速度と安全性のバランス良' },
-  hot:  { short: '高温',  note: '反応が速いが金属へのダメージ増加' },
-}
-
-export const PROC_LABELS: Record<ProcChoice, { short: string; note: string }> = {
-  quick:    { short: '短時間処置', note: '表面の錆のみ除去。深部に届かない可能性' },
-  standard: { short: '標準処置',  note: '十分な浸透時間。深部の錆まで対処可能' },
-}
-

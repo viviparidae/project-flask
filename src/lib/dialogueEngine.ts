@@ -3,10 +3,11 @@
  *
  * プレイヤーは選択肢を持たず、「次へ」ボタンで会話を進める。
  * 会話を通じて依頼の内容・背景が自然に明らかになる。
+ * Phase 1 追加: 納品後の依頼人反応会話（結果グレードによる分岐）
  */
 
 export type Speaker = 'narrator' | 'gard' | '錬金術師'
-export type Mood = 'neutral' | 'sad' | 'tense' | 'hopeful' | 'analytical' | 'angry'
+export type Mood = 'neutral' | 'sad' | 'tense' | 'hopeful' | 'analytical' | 'angry' | 'grateful' | 'disappointed'
 
 export const MOOD_EMOJI: Record<Mood, string> = {
   neutral: '😐',
@@ -15,6 +16,8 @@ export const MOOD_EMOJI: Record<Mood, string> = {
   hopeful: '🙂',
   analytical: '🤔',
   angry: '😡',
+  grateful: '😊',
+  disappointed: '😞',
 }
 
 export const MOOD_COLOR: Record<Mood, string> = {
@@ -24,6 +27,8 @@ export const MOOD_COLOR: Record<Mood, string> = {
   hopeful: '#65e6ad',
   analytical: '#8bcfef',
   angry: '#f87171',
+  grateful: '#4ade80',
+  disappointed: '#facc15',
 }
 
 export type DialogueNode = {
@@ -35,6 +40,7 @@ export type DialogueNode = {
   nextNodeId: string | null
 }
 
+/** エピソード1 本編会話 */
 export const ep01Story: Record<string, DialogueNode> = {
   s01: {
     id: 's01',
@@ -118,6 +124,118 @@ export const ep01Story: Record<string, DialogueNode> = {
   },
 }
 
+/** 納品後・依頼人の反応会話（結果グレード別分岐） */
+export const ep01PostDelivery: Record<string, Record<string, DialogueNode>> = {
+  // PERFECT: 完全修復
+  PERFECT: {
+    pd01: {
+      id: 'pd01',
+      speaker: 'gard',
+      speakerName: 'ガルド',
+      text: '剣を受け取った瞬間、ガルドの目が見開かれた。\n\n「……嘘だろ。これ、本当に同じ剣か？」\n\n彼は刃を光にかざし、しばらく言葉を失っていた。\n黒い膜は跡形もなく、鋼本来の輝きが鮮やかに蘇っている。',
+      mood: 'grateful',
+      nextNodeId: 'pd02',
+    },
+    pd02: {
+      id: 'pd02',
+      speaker: 'gard',
+      speakerName: 'ガルド',
+      text: '「親父の顔が、刃に映っている。……ありがとう。\n本当に、ありがとう。」\n\n鍛冶師の目に、光るものが見えた。\n重い布で丁寧に剣を包み直す指先が、わずかに震えている。',
+      mood: 'grateful',
+      nextNodeId: 'pd03',
+    },
+    pd03: {
+      id: 'pd03',
+      speaker: 'narrator',
+      speakerName: '——',
+      text: 'ガルドは深く頭を下げ、報酬の袋をテーブルに置いた。\n\n「また、何かあったら頼む。\n次はもっといい酒でも持ってくるよ。」\n\n夕闇の中、満足げな足取りでテントを後にする背中が、いつもより軽やかに見えた。',
+      mood: 'neutral',
+      nextNodeId: null,
+    },
+  },
+  // GOOD: 良好な修復
+  GOOD: {
+    pd01: {
+      id: 'pd01',
+      speaker: 'gard',
+      speakerName: 'ガルド',
+      text: '剣を受け取り、ガルドは刃先から根元まで念入りに眺めた。\n\n「……おお。大分違うな。\nこれなら実戦で使える。」\n\nわずかに残った薄い痕跡を指でなぞりながら、彼は頷いた。',
+      mood: 'hopeful',
+      nextNodeId: 'pd02',
+    },
+    pd02: {
+      id: 'pd02',
+      speaker: 'gard',
+      speakerName: 'ガルド',
+      text: '「完璧じゃないが……これだけ戻れば上等だ。助かった。\n親父も、これなら納得するだろう。」',
+      mood: 'grateful',
+      nextNodeId: 'pd03',
+    },
+    pd03: {
+      id: 'pd03',
+      speaker: 'narrator',
+      speakerName: '——',
+      text: 'ガルドは報酬を払い、剣を大切そうに布で包んだ。\n\n「また頼むかもしれない。\nその時は、よろしく。」\n\n背中を向けた彼の歩みには、安堵の色が滲んでいた。',
+      mood: 'neutral',
+      nextNodeId: null,
+    },
+  },
+  // PARTIAL: 修復不完全
+  PARTIAL: {
+    pd01: {
+      id: 'pd01',
+      speaker: 'gard',
+      speakerName: 'ガルド',
+      text: '剣を手に取ったガルドの眉が、わずかに寄った。\n\n「……まあ、マシにはなってる。\nだが、まだ深いところの錆が残ってるな。」\n\n彼は刃の根元付近、まだ黒ずんだ部分を指で示した。',
+      mood: 'disappointed',
+      nextNodeId: 'pd02',
+    },
+    pd02: {
+      id: 'pd02',
+      speaker: 'gard',
+      speakerName: 'ガルド',
+      text: '「これじゃ、またすぐ錆び戻る。\n……もう一回、やり直せるか？」\n\n声に責める色はないが、期待していた分だけ落胩も滲んでいる。',
+      mood: 'disappointed',
+      nextNodeId: 'pd03',
+    },
+    pd03: {
+      id: 'pd03',
+      speaker: 'narrator',
+      speakerName: '——',
+      text: 'ガルドは渋々報酬を払い、剣を布に包んだ。\n\n「……また来る。次は頼むぞ。」\n\nその言葉には、突き放すような、しかし信頼を捨てきれない複雑な響きがあった。',
+      mood: 'neutral',
+      nextNodeId: null,
+    },
+  },
+  // DAMAGED / FAILED: 失敗・事故
+  DAMAGED: {
+    pd01: {
+      id: 'pd01',
+      speaker: 'gard',
+      speakerName: 'ガルド',
+      text: '剣を見た瞬間、ガルドの表情が凍りついた。\n\n「……何をしてくれた……！\nこれじゃ、親父の形見が、台無しだ！」\n\n刃の表面は白く荒れ、エッジは丸まっている。\n処理液が腐食だけでなく、金属母材まで攻撃してしまったのだ。',
+      mood: 'angry',
+      nextNodeId: 'pd02',
+    },
+    pd02: {
+      id: 'pd02',
+      speaker: 'gard',
+      speakerName: 'ガルド',
+      text: '「弁償なんてできるわけねえだろ！\nこれは……金でどうなるもんじゃねえ！」\n\n激昂した彼の手が、テーブルを叩く。\nテントの中に、重苦しい沈黙が降りた。',
+      mood: 'angry',
+      nextNodeId: 'pd03',
+    },
+    pd03: {
+      id: 'pd03',
+      speaker: 'narrator',
+      speakerName: '——',
+      text: 'ガルドは報酬を置かず、剣を乱暴に布で包んで立ち去った。\n\nテントの入り口で、彼は振り向かずに言った。\n\n「……二度と、顔も見せねえ方がいい。」\n\n砂塵の中に消えていく背中が、かつてないほど重く見えた。',
+      mood: 'neutral',
+      nextNodeId: null,
+    },
+  },
+}
+
 export type DialogueState = {
   nodeId: string
 }
@@ -127,3 +245,13 @@ export const initialDialogueState: DialogueState = {
 }
 
 export const dialogueNodes = ep01Story
+
+/** 納品後会話ノードを取得 */
+export function getPostDeliveryNodes(grade: string): Record<string, DialogueNode> {
+  return ep01PostDelivery[grade] || ep01PostDelivery.DAMAGED
+}
+
+/** 初期納品後ノードIDを取得 */
+export function getInitialPostDeliveryNodeId(grade: string): string {
+  return 'pd01'
+}

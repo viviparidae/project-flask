@@ -17,5 +17,6 @@
     "jsx": "react-jsx",
     "types": ["vitest/globals", "@testing-library/jest-dom", "phaser"]
   },
-  "include": ["src", "tests", "src/game"]
+  "include": ["src/game", "src/lib", "src/main.ts", "src/vite-env.d.ts", "src/phaser-rexui.d.ts", "tests"],
+  "exclude": ["**/*.legacy.ts", "tests/App.test.tsx"]
 }

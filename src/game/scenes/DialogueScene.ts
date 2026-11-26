@@ -1,9 +1,16 @@
 import Phaser from 'phaser'
-import { dialogueNodes, initialDialogueState, type DialogueState } from '../../lib/dialogueEngine'
+import {
+  dialogueNodes,
+  initialDialogueState,
+  type DialogueState,
+  getPostDeliveryNodes,
+  getInitialPostDeliveryNodeId,
+} from '../../lib/dialogueEngine'
 
 /**
  * DialogueScene — 対話フェーズ
- * 線形ノベル形式：テキスト表示 → タップで次へ → 完了で LabScene へ
+ * 線形ノベル形式：テキスト表示 → タップで次へ
+ * Phase 1 追加: 納品後の依頼人反応会話（postDelivery フラグで分岐）
  */
 export class DialogueScene extends Phaser.Scene {
   private dialogueState: DialogueState = { ...initialDialogueState }
@@ -14,6 +21,11 @@ export class DialogueScene extends Phaser.Scene {
   private moodEmojiText!: Phaser.GameObjects.Text
   private sceneBgText!: Phaser.GameObjects.Text
 
+  // 納品後会話用
+  private postDelivery = false
+  private postDeliveryNodes: Record<string, any> = {}
+  private outcomeGrade = ''
+
   constructor() {
     super({ key: 'DialogueScene' })
   }
@@ -22,12 +34,29 @@ export class DialogueScene extends Phaser.Scene {
     const { width, height } = this.scale
     const state = this.game.registry.get('gameState')
 
+    // init データから納品後フラグを取得
+    const initData = this.scene.settings.data as {
+      postDelivery?: boolean
+      outcomeGrade?: string
+      recipeResult?: any
+    } | undefined
+    this.postDelivery = initData?.postDelivery ?? false
+    this.outcomeGrade = initData?.outcomeGrade ?? ''
+
+    if (this.postDelivery) {
+      this.postDeliveryNodes = getPostDeliveryNodes(this.outcomeGrade)
+      this.dialogueState.nodeId = getInitialPostDeliveryNodeId(this.outcomeGrade)
+    } else {
+      this.dialogueState = { ...initialDialogueState }
+    }
+
     // 背景
     this.bgGraphics = this.add.graphics()
     this.drawBackground()
 
     // シーン背景テキスト
-    this.sceneBgText = this.add.text(width / 2, state.safeArea.top + 40, '荒野の仮設テント — 夕刻', {
+    const bgText = this.postDelivery ? '荒野の仮設テント — 納品の瞬間' : '荒野の仮設テント — 夕刻'
+    this.sceneBgText = this.add.text(width / 2, state.safeArea.top + 40, bgText, {
       fontSize: '16px',
       color: '#8899aa',
       fontFamily: 'system-ui, sans-serif',
@@ -37,7 +66,8 @@ export class DialogueScene extends Phaser.Scene {
     const windowY = height * 0.55
 
     // キャラクターシルエット（絵文字で代用）
-    const charEmoji = this.add.text(width / 2, windowY - 80, '🏕️', { fontSize: '64px' }).setOrigin(0.5)
+    const charEmoji = this.postDelivery ? '🧔' : '🏕️'
+    const char = this.add.text(width / 2, windowY - 80, charEmoji, { fontSize: '64px' }).setOrigin(0.5)
 
     // 発言者名
     this.speakerNameText = this.add.text(state.safeArea.left + 24, windowY - 20, '', {
@@ -133,7 +163,8 @@ export class DialogueScene extends Phaser.Scene {
   }
 
   private showCurrentNode() {
-    const node = dialogueNodes[this.dialogueState.nodeId]
+    const nodes = this.postDelivery ? this.postDeliveryNodes : dialogueNodes
+    const node = nodes[this.dialogueState.nodeId]
     if (!node) return
 
     // 発言者名
@@ -143,13 +174,10 @@ export class DialogueScene extends Phaser.Scene {
       錬金術師: 0x70b8a0,
     }
     this.speakerNameText.setText(node.speakerName)
-    this.speakerNameText.setColor('#' + speakerColors[node.speaker]?.toString(16).padStart(6, '0') || '7a8a9a')
+    this.speakerNameText.setColor('#' + (speakerColors[node.speaker]?.toString(16).padStart(6, '0') || '7a8a9a'))
 
     // ムード絵文字
-    const moodEmojis: Record<string, string> = {
-      neutral: '😐', sad: '😔', tense: '😤', hopeful: '🙂', analytical: '🤔', angry: '😡',
-    }
-    this.moodEmojiText.setText(moodEmojis[node.mood] || '😐')
+    this.moodEmojiText.setText(node.mood && MOOD_EMOJI[node.mood as keyof typeof MOOD_EMOJI] || '😐')
 
     // メッセージテキスト（タイプライター効果で表示）
     this.typewriterText(node.text)
@@ -174,13 +202,21 @@ export class DialogueScene extends Phaser.Scene {
   }
 
   private advanceDialogue() {
-    const node = dialogueNodes[this.dialogueState.nodeId]
+    const nodes = this.postDelivery ? this.postDeliveryNodes : dialogueNodes
+    const node = nodes[this.dialogueState.nodeId]
     if (!node) return
 
     if (node.nextNodeId === null) {
-      // 対話完了 → LabScene へ
+      // 対話完了
       this.input.off('pointerdown', this.advanceDialogue, this)
-      this.scene.start('LabScene', { gameState: this.game.registry.get('gameState') })
+      if (this.postDelivery) {
+        // 納品後会話完了 → 次の日の処理やタイトルへ（Phase 3 で実装）
+        // ひとまず最初の会話に戻す
+        this.scene.start('DialogueScene')
+      } else {
+        // 本編会話完了 → LabScene へ
+        this.scene.start('LabScene', { gameState: this.game.registry.get('gameState') })
+      }
     } else {
       this.dialogueState.nodeId = node.nextNodeId
       this.showCurrentNode()
@@ -200,4 +236,16 @@ export class DialogueScene extends Phaser.Scene {
     this.scale.off('resize', this.onResize, this)
     this.input.off('pointerdown', this.advanceDialogue, this)
   }
+}
+
+// MOOD_EMOJI をインポートして使うためのローカル参照
+const MOOD_EMOJI: Record<string, string> = {
+  neutral: '😐',
+  sad: '😔',
+  tense: '😤',
+  hopeful: '🙂',
+  analytical: '🤔',
+  angry: '😡',
+  grateful: '😊',
+  disappointed: '😞',
 }

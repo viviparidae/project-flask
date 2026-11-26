@@ -1,87 +1,189 @@
 import { describe, expect, it } from 'vitest'
 import { judgeRestoration } from '../src/lib/fateEngine'
-import { reactionInputFromAttempt } from '../src/lib/reactionEngine'
-import type { RecipeAttempt } from '../src/lib/recipeEngine'
-import { createEmptyAttempt, executeTreatment } from '../src/lib/treatmentEngine'
+import { RECIPE_EP01, type Recipe, type RecipeAttempt, createEmptyAttempt, executeStep, evaluateRecipe } from '../src/lib/recipeEngine'
+import { executeTreatment, type TreatmentResult } from '../src/lib/treatmentEngine'
 
 /**
- * [EP01 勝敗検証 / phaser-rewrite] Phaser 版の実行パイプライン
- * （treatmentEngine.executeTreatment）の勝敗到達可能性を検証する。
+ * [EP01 勝敗検証 / phaser-rewrite] 新レシピ式エンジンの勝敗到達可能性を検証する。
  *
- * 仕様の出典: docs/story/ep01-ancient-sword.md
- * - リン酸 最適: 濃度 Lv.3〜4 / 温度 35〜45℃、除去力 1.00（推奨）
- * - 有害ガス発生: HCl かつ 濃度≥4 かつ 温度≥45℃
- * - 結末: スコア≥80 PERFECT(+35/280G)、55〜79 GOOD(+18/160G)、
- *   25〜54 PARTIAL(+3/60G)、<25 DAMAGED(-30/0G)、ガス事故 DAMAGED(-40/0G)
- * - UI の対応（実行時）: 温度 低温 20℃ / 中温 40℃ / 高温 55℃、
- *   濃度 薄め Lv.2 / 標準 Lv.3 / 濃め Lv.5
+ * 新設計:
+ * - レシピの手順を順に実行する
+ * - 正しい手順で作れば成功（品質段階: perfect/good/partial/failed）
+ * - 手順ミスは品質段階と依頼人の反応の小分岐にだけ効かせる
+ * - Ep.1 の推奨処置（リン酸／標準濃度／中温）はレシピの記載内容として残す
  */
 
-const CORRECT: RecipeAttempt = {
-  ...createEmptyAttempt(),
-  acid: 'Phosphoric',
-  concentration: 'standard',
-  temperature: 'warm',
-  procedure: 'standard',
-  reaction: 'standard',
-  filtration: 'standard',
+// 正解の手順パラメータ（レシピ記載通り）
+const CORRECT_STEP_PARAMS: Array<Record<string, string>> = [
+    { reagent: 'Phosphoric', concentration: 'standard' },
+    { reagent: 'water', concentration: 'adjusted' },
+    { temperature: 'warm' },
+    { duration: 'standard' },
+    { filtration: 'standard' },
+  ]
+
+// 全手順を正解で実行した試行状態
+function createPerfectAttempt(): RecipeAttempt {
+  let attempt = createEmptyAttempt()
+  for (const params of CORRECT_STEP_PARAMS) {
+    attempt = executeStep(RECIPE_EP01, attempt, params)
+  }
+  return attempt
 }
 
-describe('[EP01/phaser] reactionInputFromAttempt — UI選択から反応条件への変換', () => {
-  it('正解の組み合わせはリン酸の最適条件（濃度3〜4, 温度35〜45℃）に一致する', () => {
-    const input = reactionInputFromAttempt(CORRECT)
-    expect(input.acidType).toBe('Phosphoric')
-    expect(input.concentration).toBeGreaterThanOrEqual(3)
-    expect(input.concentration).toBeLessThanOrEqual(4)
-    expect(input.temperature).toBeGreaterThanOrEqual(35)
-    expect(input.temperature).toBeLessThanOrEqual(45)
-    expect(input.procedure).toBe('standard')
+// 1手順ミスした試行状態
+function createOneMistakeAttempt(): RecipeAttempt {
+  let attempt = createEmptyAttempt()
+  // 最初の手順だけミス（塩酸を選ぶ）
+  attempt = executeStep(RECIPE_EP01, attempt, { reagent: 'HCl', concentration: 'strong' })
+  // 残りは正解
+  for (let i = 1; i < CORRECT_STEP_PARAMS.length; i++) {
+    attempt = executeStep(RECIPE_EP01, attempt, CORRECT_STEP_PARAMS[i])
+  }
+  return attempt
+}
+
+// 2手順ミスした試行状態
+function createTwoMistakesAttempt(): RecipeAttempt {
+  let attempt = createEmptyAttempt()
+  attempt = executeStep(RECIPE_EP01, attempt, { reagent: 'HCl', concentration: 'strong' })
+  attempt = executeStep(RECIPE_EP01, attempt, { reagent: 'water', concentration: 'wrong' })
+  for (let i = 2; i < CORRECT_STEP_PARAMS.length; i++) {
+    attempt = executeStep(RECIPE_EP01, attempt, CORRECT_STEP_PARAMS[i])
+  }
+  return attempt
+}
+
+// 3手順以上ミスした試行状態
+function createManyMistakesAttempt(): RecipeAttempt {
+  let attempt = createEmptyAttempt()
+  for (let i = 0; i < 3; i++) {
+    attempt = executeStep(RECIPE_EP01, attempt, { reagent: 'wrong', concentration: 'wrong' })
+  }
+  for (let i = 3; i < CORRECT_STEP_PARAMS.length; i++) {
+    attempt = executeStep(RECIPE_EP01, attempt, CORRECT_STEP_PARAMS[i])
+  }
+  return attempt
+}
+
+describe('[EP01/phaser] レシピエンジン — 手順実行・評価', () => {
+  it('レシピは5つの手順を持つ', () => {
+    expect(RECIPE_EP01.steps).toHaveLength(5)
+    expect(RECIPE_EP01.steps[0].label).toBe('リン酸を標準濃度で準備する')
+    expect(RECIPE_EP01.steps[0].reason).toContain('塩化物錆に有効')
+  })
+
+  it('手順には「なぜこの手順か」の理由が1行ずつある', () => {
+    for (const step of RECIPE_EP01.steps) {
+      expect(step.reason).toBeTruthy()
+      expect(step.reason.length).toBeGreaterThan(10)
+    }
+  })
+
+  it('材料リストが正しく定義されている', () => {
+    expect(RECIPE_EP01.ingredients).toContain('リン酸 (H₃PO₄) — 標準濃度')
+    expect(RECIPE_EP01.ingredients).toContain('蒸留水 — 希釈用')
+    expect(RECIPE_EP01.ingredients).toContain('古剣（対象）')
   })
 })
 
-describe('[EP01/phaser] 勝敗判定 — executeTreatment', () => {
-  it('会話のヒント通りの処方で完全修復（PERFECT）に到達する', () => {
-    const { recipeResult, reactionResult, fate } = executeTreatment(CORRECT)
-    expect(recipeResult.matchScore).toBe(6)
-    expect(recipeResult.grade).toBe('PERFECT')
-    expect(reactionResult.corrosionRemoved).toBe(100)
-    expect(reactionResult.metalDamage).toBe(0)
-    expect(reactionResult.restorationScore).toBe(100)
+describe('[EP01/phaser] 品質評価 — executeStep + evaluateRecipe', () => {
+  it('全手順正解で perfect 品質になる', () => {
+    const attempt = createPerfectAttempt()
+    const result = evaluateRecipe(RECIPE_EP01, attempt)
+
+    expect(result.isComplete).toBe(true)
+    expect(result.qualityTier).toBe('perfect')
+    expect(result.progress.completed).toBe(5)
+    expect(result.progress.total).toBe(5)
+    expect(result.mistakes).toHaveLength(0)
+  })
+
+  it('1手順ミスで good 品質になる', () => {
+    const attempt = createOneMistakeAttempt()
+    const result = evaluateRecipe(RECIPE_EP01, attempt)
+
+    expect(result.isComplete).toBe(true)
+    expect(result.qualityTier).toBe('good')
+    expect(result.mistakes).toHaveLength(1)
+    expect(result.mistakes[0].stepId).toBe(0)
+  })
+
+  it('2手順ミスで partial 品質になる', () => {
+    const attempt = createTwoMistakesAttempt()
+    const result = evaluateRecipe(RECIPE_EP01, attempt)
+
+    expect(result.isComplete).toBe(true)
+    expect(result.qualityTier).toBe('partial')
+    expect(result.mistakes).toHaveLength(2)
+  })
+
+  it('3手順以上ミスで failed 品質になる', () => {
+    const attempt = createManyMistakesAttempt()
+    const result = evaluateRecipe(RECIPE_EP01, attempt)
+
+    expect(result.isComplete).toBe(true)
+    expect(result.qualityTier).toBe('failed')
+    expect(result.mistakes.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('未完了状態では isComplete が false', () => {
+    let attempt = createEmptyAttempt()
+    attempt = executeStep(RECIPE_EP01, attempt, CORRECT_STEP_PARAMS[0])
+    const result = evaluateRecipe(RECIPE_EP01, attempt)
+
+    expect(result.isComplete).toBe(false)
+    expect(result.progress.completed).toBe(1)
+  })
+})
+
+describe('[EP01/phaser] 統合実行 — executeTreatment', () => {
+  it('完全修復（perfect）で PERFECT 判定になる', () => {
+    const attempt = createPerfectAttempt()
+    const { recipeResult, fate } = executeTreatment(attempt)
+
+    expect(recipeResult.qualityTier).toBe('perfect')
     expect(fate.grade).toBe('PERFECT')
     expect(fate.resultTitle).toContain('完全修復')
     expect(fate.trustDelta).toBe(35)
     expect(fate.reward).toBe(280)
   })
 
-  it('同じ入力では常に同じ結果になる（決定論性 NFR-REPR-01）', () => {
-    expect(executeTreatment(CORRECT)).toEqual(executeTreatment(CORRECT))
-  })
+  it('1手順ミス（good）で GOOD 判定になる', () => {
+    const attempt = createOneMistakeAttempt()
+    const { recipeResult, fate } = executeTreatment(attempt)
 
-  it('手順だけ短時間にすると深部に届かず GOOD（スコア60）に落ちる', () => {
-    const { reactionResult, fate } = executeTreatment({ ...CORRECT, procedure: 'quick' })
-    expect(reactionResult.restorationScore).toBe(60)
+    expect(recipeResult.qualityTier).toBe('good')
     expect(fate.grade).toBe('GOOD')
+    expect(fate.resultTitle).toContain('良好')
+    expect(fate.trustDelta).toBe(18)
+    expect(fate.reward).toBe(160)
   })
 
-  it('塩酸 + 濃め + 高温で塩化水素ガス事故が発生する', () => {
-    const { recipeResult, reactionResult, fate } = executeTreatment({
-      ...CORRECT,
-      acid: 'HCl',
-      concentration: 'strong',
-      temperature: 'hot',
-    })
-    expect(recipeResult.isAccident).toBe(true)
-    expect(reactionResult.byproductHazard).toBe(true)
+  it('2手順ミス（partial）で PARTIAL 判定になる', () => {
+    const attempt = createTwoMistakesAttempt()
+    const { recipeResult, fate } = executeTreatment(attempt)
+
+    expect(recipeResult.qualityTier).toBe('partial')
+    expect(fate.grade).toBe('PARTIAL')
+    expect(fate.resultTitle).toContain('不完全')
+    expect(fate.trustDelta).toBe(3)
+    expect(fate.reward).toBe(60)
+  })
+
+  it('多数ミス（failed）で DAMAGED 判定になる', () => {
+    const attempt = createManyMistakesAttempt()
+    const { recipeResult, fate } = executeTreatment(attempt)
+
+    expect(recipeResult.qualityTier).toBe('failed')
     expect(fate.grade).toBe('DAMAGED')
-    expect(fate.resultTitle).toContain('塩化水素ガス')
-    expect(fate.trustDelta).toBe(-40)
+    expect(fate.trustDelta).toBe(-30)
     expect(fate.reward).toBe(0)
   })
 
-  it('リン酸でも濃度が薄いと PARTIAL（修復不完全）止まり', () => {
-    const { reactionResult, fate } = executeTreatment({ ...CORRECT, concentration: 'light' })
-    expect(reactionResult.restorationScore).toBe(50)
-    expect(fate.grade).toBe('PARTIAL')
+  it('同じ入力では常に同じ結果になる（決定論性）', () => {
+    const attempt = createPerfectAttempt()
+    expect(executeTreatment(attempt)).toEqual(executeTreatment(attempt))
   })
 })
 
@@ -111,35 +213,24 @@ describe('[EP01/phaser] fateEngine の結末表（仕様書通り）', () => {
   })
 })
 
-describe('[EP01/phaser] 全組み合わせの到達可能性', () => {
-  const acids = ['HCl', 'Citric', 'Phosphoric'] as const
-  const concs = ['light', 'standard', 'strong'] as const
-  const temps = ['cold', 'warm', 'hot'] as const
-  const procs = ['quick', 'standard'] as const
+describe('[EP01/phaser] 品質段階の全到達可能性', () => {
+  it('perfect / good / partial / failed の全品質段階に到達できる', () => {
+    const tiers = new Set<string>()
+    tiers.add(evaluateRecipe(RECIPE_EP01, createPerfectAttempt()).qualityTier)
+    tiers.add(evaluateRecipe(RECIPE_EP01, createOneMistakeAttempt()).qualityTier)
+    tiers.add(evaluateRecipe(RECIPE_EP01, createTwoMistakesAttempt()).qualityTier)
+    tiers.add(evaluateRecipe(RECIPE_EP01, createManyMistakesAttempt()).qualityTier)
 
-  it('PERFECT に到達できるのは正解の処方（手順含む）だけ', () => {
-    const perfects: RecipeAttempt[] = []
-    for (const acid of acids)
-      for (const concentration of concs)
-        for (const temperature of temps)
-          for (const procedure of procs) {
-            const attempt = { ...CORRECT, acid, concentration, temperature, procedure }
-            if (executeTreatment(attempt).fate.grade === 'PERFECT') perfects.push(attempt)
-          }
-    expect(perfects).toEqual([CORRECT])
+    expect(tiers).toEqual(new Set(['perfect', 'good', 'partial', 'failed']))
   })
 
-  it('PERFECT / GOOD / PARTIAL / DAMAGED の全グレードに到達できる', () => {
+  it('全グレード（PERFECT/GOOD/PARTIAL/DAMAGED）に到達できる', () => {
     const grades = new Set<string>()
-    for (const acid of acids)
-      for (const concentration of concs)
-        for (const temperature of temps)
-          for (const procedure of procs) {
-            grades.add(
-              executeTreatment({ ...CORRECT, acid, concentration, temperature, procedure }).fate
-                .grade,
-            )
-          }
+    grades.add(executeTreatment(createPerfectAttempt()).fate.grade)
+    grades.add(executeTreatment(createOneMistakeAttempt()).fate.grade)
+    grades.add(executeTreatment(createTwoMistakesAttempt()).fate.grade)
+    grades.add(executeTreatment(createManyMistakesAttempt()).fate.grade)
+
     expect(grades).toEqual(new Set(['PERFECT', 'GOOD', 'PARTIAL', 'DAMAGED']))
   })
 })

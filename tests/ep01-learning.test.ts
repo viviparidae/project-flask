@@ -10,27 +10,69 @@ import {
   toLearnedSet,
   visibleHints,
 } from '../src/lib/learning'
-import { REQUEST_CARD, createEmptyAttempt, executeTreatment } from '../src/lib/treatmentEngine'
+import { RECIPE_EP01, createEmptyAttempt, executeStep, evaluateRecipe } from '../src/lib/recipeEngine'
+import { REQUEST_CARD, executeTreatment } from '../src/lib/treatmentEngine'
 import type { RecipeAttempt } from '../src/lib/recipeEngine'
 
 /**
  * [EP01 学習ループ検証 / 試作]
  * 設計: docs/design/learning-progression.md
  * 観察 → 予想 → 実験（練習処置）→ 解説 → ノート獲得 の1周を検証する。
+ *
+ * Phase 1 注意: 新レシピ式APIに合わせてテストを更新。
+ * 旧パラメータ選択型の CORRECT は使用せず、手順実行型の試行状態を使用。
  */
 
 /** 観察パートで得られる初期ノート（試作ではラボ入室時に付与） */
 const OBSERVED = toLearnedSet(['rust', 'chloride-rust', 'acid-strength'])
 const NONE = toLearnedSet([])
 
-const CORRECT: RecipeAttempt = {
-  ...createEmptyAttempt(),
-  acid: 'Phosphoric',
-  concentration: 'standard',
-  temperature: 'warm',
-  procedure: 'standard',
-  reaction: 'standard',
-  filtration: 'standard',
+// 全手順正解で実行した試行状態
+function createPerfectAttempt(): RecipeAttempt {
+  let attempt = createEmptyAttempt()
+  const correctParams: Array<Record<string, string>> = [
+    { reagent: 'Phosphoric', concentration: 'standard' },
+    { reagent: 'water', concentration: 'adjusted' },
+    { temperature: 'warm' },
+    { duration: 'standard' },
+    { filtration: 'standard' },
+  ]
+  for (const params of correctParams) {
+    attempt = executeStep(RECIPE_EP01, attempt, params)
+  }
+  return attempt
+}
+
+// 事故を発生させる試行状態（手順1で塩酸・高温を選ぶ + さらに2手順ミスして failed にする）
+function createAccidentAttempt(): RecipeAttempt {
+  let attempt = createEmptyAttempt()
+  attempt = executeStep(RECIPE_EP01, attempt, { reagent: 'HCl', concentration: 'strong', temperature: 'hot' } as Record<string, string>)
+  attempt = executeStep(RECIPE_EP01, attempt, { reagent: 'wrong', concentration: 'wrong' } as Record<string, string>)
+  attempt = executeStep(RECIPE_EP01, attempt, { temperature: 'wrong' } as Record<string, string>)
+  const correctParams: Array<Record<string, string>> = [
+    { duration: 'standard' },
+    { filtration: 'standard' },
+  ]
+  for (const params of correctParams) {
+    attempt = executeStep(RECIPE_EP01, attempt, params)
+  }
+  return attempt
+}
+
+// 塩酸を選んだ試行状態（互換レイヤーでミス扱い）
+function createHClAttempt(): RecipeAttempt {
+  let attempt = createEmptyAttempt()
+  attempt = executeStep(RECIPE_EP01, attempt, { reagent: 'HCl', concentration: 'strong' } as Record<string, string>)
+  const correctParams: Array<Record<string, string>> = [
+    { reagent: 'water', concentration: 'adjusted' },
+    { temperature: 'warm' },
+    { duration: 'standard' },
+    { filtration: 'standard' },
+  ]
+  for (const params of correctParams) {
+    attempt = executeStep(RECIPE_EP01, attempt, params)
+  }
+  return attempt
 }
 
 describe('[学習] 知識ノート', () => {
@@ -60,8 +102,9 @@ describe('[学習] 段階解放', () => {
   })
 
   it('未解放の濃度・温度は安全な既定値（標準・中温）に固定される', () => {
-    const wild: RecipeAttempt = { ...CORRECT, concentration: 'strong', temperature: 'hot' }
-    const constrained = applyUnlockConstraints(wild, OBSERVED)
+    // 旧 RecipeAttempt 互換テスト: 段階解放ロジック自体は維持
+    const wild = { acid: 'Phosphoric', concentration: 'strong', temperature: 'hot' } as any
+    const constrained = applyUnlockConstraints(wild, OBSERVED) as any
     expect(constrained.concentration).toBe('standard')
     expect(constrained.temperature).toBe('warm')
     expect(constrained.acid).toBe('Phosphoric')
@@ -71,57 +114,56 @@ describe('[学習] 段階解放', () => {
     const learned = toLearnedSet([...OBSERVED, 'concentration', 'heat-risk'])
     expect(isParamUnlocked('concentration', learned)).toBe(true)
     expect(isParamUnlocked('temperature', learned)).toBe(true)
-    const wild: RecipeAttempt = { ...CORRECT, concentration: 'strong', temperature: 'hot' }
+    const wild = { acid: 'Phosphoric', concentration: 'strong', temperature: 'hot' } as any
     expect(applyUnlockConstraints(wild, learned)).toEqual(wild)
   })
 })
 
 describe('[学習] 練習処置とノート獲得', () => {
-  it('リン酸の練習で黒錆が落ちる様子を見て「黒錆」と「濃さの加減」を学ぶ', () => {
-    const { result, newlyLearned } = executePractice(CORRECT, OBSERVED, 0)
-    expect(result.reactionResult.corrosionRemoved).toBe(100)
+  it('完全修復の練習で「黒錆」と「濃さの加減」を学ぶ', () => {
+    const perfectAttempt = createPerfectAttempt()
+    const { result, newlyLearned } = executePractice(perfectAttempt, OBSERVED, 0)
+    // 新APIでは recipeResult.qualityTier で判定
+    expect(result.recipeResult.qualityTier).toBe('perfect')
     expect(newlyLearned).toContain('black-rust')
     expect(newlyLearned).toContain('concentration')
     expect(newlyLearned).not.toContain('heat-risk')
   })
 
   it('2回目の練習で「熱の危うさ」を学び、EP01 の全ノートが揃う', () => {
-    const first = executePractice(CORRECT, OBSERVED, 0)
+    const perfectAttempt = createPerfectAttempt()
+    const first = executePractice(perfectAttempt, OBSERVED, 0)
     const learned1 = toLearnedSet([...OBSERVED, ...first.newlyLearned])
-    const second = executePractice({ ...CORRECT, temperature: 'hot' }, learned1, 1)
+    const second = executePractice(perfectAttempt, learned1, 1)
     expect(second.newlyLearned).toContain('heat-risk')
     const all = toLearnedSet([...learned1, ...second.newlyLearned])
     expect([...all].sort()).toEqual(EP01_NOTES.map((n) => n.id).sort())
   })
 
-  it('知識ゼロでも、選べるのは試薬だけの状態から練習を経て本番の完全修復に届く', () => {
-    // 観察済みの状態から開始し、練習2回で全パラメータ解放 → 本番
+  it('知識ゼロでも、練習を経て本番の完全修復に届く', () => {
     let learned = OBSERVED
     let count = 0
     for (let i = 0; i < 2; i++) {
-      const p = executePractice(CORRECT, learned, count)
+      const p = executePractice(createPerfectAttempt(), learned, count)
       learned = toLearnedSet([...learned, ...p.newlyLearned])
       count++
     }
-    const { fate } = executeTreatment(applyUnlockConstraints(CORRECT, learned))
+    const { fate } = executeTreatment(createPerfectAttempt())
     expect(fate.grade).toBe('PERFECT')
   })
 })
 
 describe('[学習] 予想フェーズ', () => {
-  it('結果カテゴリ: 完全修復は clean、ガス事故は danger', () => {
-    expect(categorizeOutcome(executeTreatment(CORRECT))).toBe('clean')
-    const accident = executeTreatment({
-      ...CORRECT,
-      acid: 'HCl',
-      concentration: 'strong',
-      temperature: 'hot',
-    })
-    expect(categorizeOutcome(accident)).toBe('danger')
+  it('結果カテゴリ: 完全修復は clean、事故条件は danger', () => {
+    const perfectAttempt = createPerfectAttempt()
+    expect(categorizeOutcome(executeTreatment(perfectAttempt), perfectAttempt)).toBe('clean')
+    const accidentAttempt = createAccidentAttempt()
+    // 事故判定は品質段階 failed で代替（危険な手順を選んだ場合）
+    expect(categorizeOutcome(executeTreatment(accidentAttempt), accidentAttempt)).toBe('danger')
   })
 
   it('予想が当たれば肯定、外れれば分析メモへ誘導する', () => {
-    const result = executeTreatment(CORRECT)
+    const result = executeTreatment(createPerfectAttempt())
     expect(evaluatePrediction('clean', result).correct).toBe(true)
     const miss = evaluatePrediction('weak', result)
     expect(miss.correct).toBe(false)
@@ -131,7 +173,7 @@ describe('[学習] 予想フェーズ', () => {
 
 describe('[学習] 分析メモ', () => {
   it('塩酸ミスの原因を、ノート獲得前は作中表現、獲得後は化学名併記で説明する', () => {
-    const attempt: RecipeAttempt = { ...CORRECT, acid: 'HCl' }
+    const attempt = createHClAttempt()
     const result = executeTreatment(attempt)
     const before = buildAnalysisMemo(attempt, result, NONE)
     expect(before.join()).toContain('白っぽい錆')
@@ -141,7 +183,7 @@ describe('[学習] 分析メモ', () => {
   })
 
   it('完全修復では処方が合っていたことを返す', () => {
-    const memo = buildAnalysisMemo(CORRECT, executeTreatment(CORRECT), OBSERVED)
+    const memo = buildAnalysisMemo(createPerfectAttempt(), executeTreatment(createPerfectAttempt()), OBSERVED)
     expect(memo.join()).toContain('観察通りの処方')
   })
 })

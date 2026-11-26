@@ -3,12 +3,11 @@ import 'phaser'
 
 declare module 'phaser' {
   interface Scene {
-    rexUI: any // rexUI プラグインのネームスペース（詳細型は別途定義可能）
+    rexUI: PhaserRexUI
   }
 
   interface GameObjects {
     // rexUI が追加するゲームオブジェクトファクトリメソッド
-    // 実際の型は phaser3-rex-plugins の型定義を参照
   }
 }
 
@@ -16,4 +15,16 @@ declare module 'phaser' {
 declare const require: {
   (id: string): any
   (id: 'phaser3-rex-plugins/templates/ui/ui-plugin.js'): any
+}
+
+// 最小限の rexUI 型定義（any で柔軟に対応）
+interface PhaserRexUI {
+  add: {
+    roundRectangle: (...args: any[]) => any
+    label: (...args: any[]) => any
+    sizer: (...args: any[]) => any
+    scroller: (...args: any[]) => any
+    gridSizer: (...args: any[]) => any
+    // 他のメソッドは必要に応じて追加
+  }
 }
