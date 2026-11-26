@@ -13,6 +13,7 @@ export class ResultScene extends Phaser.Scene {
   private recipeResult!: RecipeResult
   private attempt!: RecipeAttempt
   private recipe!: Recipe
+  private episodeId!: string
   private state!: any
 
   constructor() {
@@ -24,11 +25,13 @@ export class ResultScene extends Phaser.Scene {
     recipeResult: RecipeResult
     attempt: RecipeAttempt
     recipe: Recipe
+    episodeId?: string
   }) {
     this.outcome = data.outcome
     this.recipeResult = data.recipeResult
     this.attempt = data.attempt
     this.recipe = data.recipe
+    this.episodeId = data.episodeId || 'ep01'
   }
 
   create() {
@@ -321,6 +324,7 @@ export class ResultScene extends Phaser.Scene {
       postDelivery: true,
       outcomeGrade: this.outcome.grade,
       recipeResult: this.recipeResult,
+      episodeId: this.episodeId,
     })
   }
 

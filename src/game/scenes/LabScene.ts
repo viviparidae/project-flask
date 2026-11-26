@@ -1,13 +1,14 @@
 import Phaser from 'phaser'
 import {
   RECIPE_EP01,
+  RECIPE_EP02,
+  RECIPE_EP03,
   type Recipe,
   type RecipeAttempt,
   type RecipeStep,
   createEmptyAttempt,
   executeStep,
   evaluateRecipe,
-  REQUEST_CARD,
 } from '../../lib/recipeEngine'
 import { executeTreatment, type TreatmentResult } from '../../lib/treatmentEngine'
 import { GameState } from '../state/GameState'
@@ -78,7 +79,28 @@ export class LabScene extends Phaser.Scene {
     this.state = data.gameState || (this.game.registry.get('gameState') as GameState)
   }
 
+  /** 現在のエピソードに応じてレシピを選択 */
+  private selectRecipeForCurrentEpisode() {
+    switch (this.state.currentEpisode) {
+      case 'ep02':
+        this.recipe = RECIPE_EP02
+        break
+      case 'ep03':
+        this.recipe = RECIPE_EP03
+        break
+      case 'ep01':
+      default:
+        this.recipe = RECIPE_EP01
+        break
+    }
+    // 試行状態をリセット
+    this.attempt = createEmptyAttempt()
+  }
+
   create() {
+    // 現在のエピソードに応じてレシピを選択
+    this.selectRecipeForCurrentEpisode()
+
     const { width, height } = this.scale
 
     // 背景描画
@@ -574,6 +596,7 @@ export class LabScene extends Phaser.Scene {
       recipeResult: this.currentResult.recipeResult,
       attempt: this.attempt,
       recipe: this.recipe,
+      episodeId: this.state.currentEpisode,
     })
   }
 
