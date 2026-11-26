@@ -15,7 +15,17 @@ import { judgeRestoration, type FateOutcome } from './fateEngine'
 // 型再エクスポート
 // ────────────────────────────────────────
 export type { Recipe, RecipeAttempt, RecipeResult, RecipeStep } from './recipeEngine'
-export { RECIPE_EP01, RECIPE_BOOK_EP01, REQUEST_CARD, createEmptyAttempt, executeStep, evaluateRecipe } from './recipeEngine'
+export {
+  RECIPE_EP01,
+  RECIPE_EP02,
+  RECIPE_EP03,
+  RECIPE_BOOK_EP01,
+  RECIPE_BOOK_DAY1,
+  REQUEST_CARD,
+  createEmptyAttempt,
+  executeStep,
+  evaluateRecipe,
+} from './recipeEngine'
 
 // ────────────────────────────────────────
 // 実行結果（統合）
